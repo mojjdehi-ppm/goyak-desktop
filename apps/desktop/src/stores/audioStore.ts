@@ -10,6 +10,20 @@ import {
 } from '../lib/tauri';
 import { useSettingsStore } from './settingsStore';
 
+/** Must match `SYSTEM_AUDIO_ID` in `src-tauri/src/audio/windows.rs`. */
+export const SYSTEM_AUDIO_ID = 'system';
+
+/** One dialog entry of the live transcript: original speech and its dub. */
+export interface TranscriptEntry {
+  id: number;
+  heard: string;
+  dubbed: string;
+}
+
+/** Audio silence longer than this starts a new transcript entry. */
+const SEGMENT_GAP_MS = 2500;
+const MAX_TRANSCRIPT_ENTRIES = 60;
+
 export interface AudioStoreState {
   status: DubbingStatus;
   selectedAppId: string;
@@ -27,7 +41,9 @@ export function useAudioStore() {
   const { settings, updateSettings } = useSettingsStore();
 
   const [status, setStatus] = useState<DubbingStatus>('ready');
-  const [selectedAppId, setSelectedAppId] = useState<string>('chrome');
+  // 'system' is the whole-device source the backend actually understands. The
+  // old 'chrome' placeholder matched nothing on Windows.
+  const [selectedAppId, setSelectedAppId] = useState<string>(SYSTEM_AUDIO_ID);
   const [applications, setApplications] = useState<AudioApplicationInfo[]>([]);
   const [outputDevices, setOutputDevices] = useState<AudioDeviceInfo[]>([]);
   const [selectedOutputId, setSelectedOutputId] = useState<string>(settings.outputDeviceId || 'default');
@@ -43,6 +59,29 @@ export function useAudioStore() {
     `[${new Date().toLocaleTimeString()}] [SYS] Dubly Real-Time Audio Engine Ready`,
   ]);
 
+  // Live session feedback: the last pipeline event, plus a chat-style
+  // transcript. Fragments arrive incrementally; a pause in the audio longer
+  // than SEGMENT_GAP_MS starts a new dialog entry, like messages in a chat.
+  const [statusLine, setStatusLine] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+  const lastFragmentAtRef = useRef<number>(0);
+  const nextEntryIdRef = useRef<number>(1);
+
+  const appendTranscriptFragment = useCallback((kind: 'heard' | 'dubbed', text: string) => {
+    const now = Date.now();
+    const isNewEntry = now - lastFragmentAtRef.current > SEGMENT_GAP_MS;
+    lastFragmentAtRef.current = now;
+    setTranscript((prev) => {
+      const entries =
+        isNewEntry || prev.length === 0
+          ? [...prev.slice(-(MAX_TRANSCRIPT_ENTRIES - 1)), { id: nextEntryIdRef.current++, heard: '', dubbed: '' }]
+          : prev;
+      const last = entries[entries.length - 1];
+      const updated = { ...last, [kind]: last[kind] + text };
+      return [...entries.slice(0, -1), updated];
+    });
+  }, []);
+
   const unlistenRef = useRef<(() => void) | null>(null);
 
   const addLog = useCallback((msg: string) => {
@@ -55,6 +94,21 @@ export function useAudioStore() {
     const devs = await fetchAudioDevices();
     setApplications(apps);
     setOutputDevices(devs);
+    // Keep the selection pointing at a source that still exists. A stale id was
+    // previously sent to the backend unchanged, where it degraded into
+    // whole-device capture without anyone being told.
+    setSelectedAppId((current) =>
+      apps.length === 0 || apps.some((a) => a.id === current) ? current : apps[0].id,
+    );
+    // Same reconciliation for the output device. The stored id ('default', or a
+    // dev_N from a previous boot) can point at nothing; the <select> then
+    // DISPLAYS the first device while the backend plays to the system default -
+    // which on this machine was a disconnected "Digital Output". Silent dub.
+    setSelectedOutputId((current) =>
+      devs.length === 0 || devs.some((d) => d.id === current)
+        ? current
+        : (devs.find((d) => d.isDefault) ?? devs[0]).id,
+    );
   }, []);
 
   useEffect(() => {
@@ -75,7 +129,16 @@ export function useAudioStore() {
         else if (s === 'ready') setStatus('ready');
         else if (s === 'error') setStatus('error');
       },
-      (log) => addLog(log),
+      (log) => {
+        addLog(log);
+        if (log.startsWith('[HEARD] ')) {
+          appendTranscriptFragment('heard', log.slice(8));
+        } else if (log.startsWith('[DUB] ')) {
+          appendTranscriptFragment('dubbed', log.slice(6));
+        } else {
+          setStatusLine(log);
+        }
+      },
       (err) => {
         setErrorMessage(err);
         setStatus('error');
@@ -83,7 +146,7 @@ export function useAudioStore() {
       },
     );
     unlistenRef.current = unlisten;
-  }, [addLog]);
+  }, [addLog, appendTranscriptFragment]);
 
   useEffect(() => {
     setupTauriListeners();
@@ -103,25 +166,36 @@ export function useAudioStore() {
 
       setStatus('connecting');
       setErrorMessage(null);
+      setStatusLine(null);
+      setTranscript([]);
+      lastFragmentAtRef.current = 0;
       addLog(`[SYS] Starting pipeline — App: ${selectedAppId}`);
       addLog(`[WASAPI] Initializing Windows loopback capture...`);
       addLog(`[GEMINI] Tone: ${settings.voiceTone} | Vibe: ${settings.voiceVibe}`);
 
-      const success = await startDubbingCommand({
-        appId: selectedAppId,
-        sourceLanguage,
-        targetLanguage,
-        apiKey: settings.geminiApiKey,
-        outputDeviceId: selectedOutputId,
-        model: settings.geminiModel || 'gemini-3.5-live-translate-preview',
-        voiceTone: settings.voiceTone,
-        voiceVibe: settings.voiceVibe,
-      });
+      let success = false;
+      let failure: string | null = null;
+      try {
+        success = await startDubbingCommand({
+          appId: selectedAppId,
+          sourceLanguage,
+          targetLanguage,
+          apiKey: settings.geminiApiKey,
+          outputDeviceId: selectedOutputId,
+          model: settings.geminiModel || 'gemini-3.5-live-translate-preview',
+          voiceTone: settings.voiceTone,
+          voiceVibe: settings.voiceVibe,
+        });
+      } catch (e) {
+        failure = typeof e === 'string' ? e : (e as Error)?.message ?? String(e);
+      }
 
       if (!success) {
+        const message =
+          failure ?? 'Failed to start dubbing pipeline. Check your API key and try again.';
         setStatus('error');
-        setErrorMessage('Failed to start dubbing pipeline. Check your API key and try again.');
-        addLog('[ERROR] Pipeline failed to start. Check Gemini API key.');
+        setErrorMessage(message);
+        addLog(`[ERROR] ${message}`);
       } else {
         setStatus('listening');
         addLog(`[PCM] Audio capture active → sending to Gemini Live`);
@@ -183,6 +257,8 @@ export function useAudioStore() {
     setTargetLanguage: updateTargetLang,
     errorMessage,
     logs,
+    statusLine,
+    transcript,
     toggleDubbing,
     refreshDevicesAndApps,
   };

@@ -44,7 +44,13 @@
     "changeOutput": "Change Device",
     "missingApiKey": "Enter your <strong>Gemini API Key</strong> in Settings to enable real-time dubbing.",
     "openSettings": "Settings",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "debugLogs": "Debug logs",
+    "copyLogs": "Copy logs",
+    "copied": "Copied!",
+    "systemAudioHint": "With System Audio, Goyak pauses listening while it speaks, so overlapping dialogue is skipped. For continuous dubbing, pick a specific application, or send the dub to a different output device.",
+    "waitingForSpeech": "Listening… dubbing starts as soon as speech is detected.",
+    "muted": "Muted"
   },
   "status": {
     "readyDesc": "Select audio source and click Start Dubbing to begin.",
