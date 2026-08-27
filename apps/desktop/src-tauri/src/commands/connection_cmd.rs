@@ -1,4 +1,5 @@
 use crate::errors::DublyError;
+use crate::gemini::build_setup_message;
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
@@ -28,17 +29,15 @@ pub async fn test_gemini_connection(api_key: String, model: String) -> Result<St
         format!("models/{}", model)
     };
 
-    let setup = serde_json::json!({
-        "setup": {
-            "model": model_full,
-            "generationConfig": {
-                "responseModalities": ["AUDIO"]
-            }
-        }
-    });
+    // Send the exact setup the dubbing session sends. A simplified test setup
+    // once reported "Connected!" while the real session was rejected over a
+    // field the test never exercised.
+    let setup_msg = build_setup_message(&model_full, "en", None, None);
+    let setup = serde_json::to_string(&setup_msg)
+        .map_err(|e| DublyError::IpcError(e.to_string()))?;
 
     write
-        .send(Message::Text(setup.to_string()))
+        .send(Message::Text(setup))
         .await
         .map_err(|e| {
             DublyError::GeminiConnectionError(format!("Failed to send setup: {}", e))

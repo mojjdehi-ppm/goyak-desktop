@@ -9,15 +9,23 @@ impl MacOSAudioCapture {
     }
 
     pub fn list_applications(&self) -> Result<Vec<AudioAppInfo>, DublyError> {
+        // Ids must be either "system" or a numeric PID: anything else is
+        // rejected by CaptureTarget::from_app_id.
         Ok(vec![
             AudioAppInfo {
-                id: "chrome".to_string(),
+                id: "system".to_string(),
+                name: "System Audio (all applications)".to_string(),
+                process_id: 0,
+                is_audio_active: true,
+            },
+            AudioAppInfo {
+                id: "101".to_string(),
                 name: "Google Chrome".to_string(),
                 process_id: 101,
                 is_audio_active: true,
             },
             AudioAppInfo {
-                id: "safari".to_string(),
+                id: "202".to_string(),
                 name: "Safari".to_string(),
                 process_id: 202,
                 is_audio_active: false,

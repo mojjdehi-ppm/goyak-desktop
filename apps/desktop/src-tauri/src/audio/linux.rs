@@ -9,12 +9,22 @@ impl LinuxPipeWireCapture {
     }
 
     pub fn list_applications(&self) -> Result<Vec<AudioAppInfo>, DublyError> {
-        Ok(vec![AudioAppInfo {
-            id: "firefox".to_string(),
-            name: "Firefox PipeWire Stream".to_string(),
-            process_id: 303,
-            is_audio_active: true,
-        }])
+        // Ids must be either "system" or a numeric PID: anything else is
+        // rejected by CaptureTarget::from_app_id.
+        Ok(vec![
+            AudioAppInfo {
+                id: "system".to_string(),
+                name: "System Audio (all applications)".to_string(),
+                process_id: 0,
+                is_audio_active: true,
+            },
+            AudioAppInfo {
+                id: "303".to_string(),
+                name: "Firefox PipeWire Stream".to_string(),
+                process_id: 303,
+                is_audio_active: true,
+            },
+        ])
     }
 
     pub fn list_output_devices(&self) -> Result<Vec<AudioDeviceInfo>, DublyError> {

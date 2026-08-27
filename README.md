@@ -74,6 +74,22 @@ Goyak is an open-source cross-platform desktop application that provides real-ti
    bun run build
    ```
 
+## 🎚️ Choosing the audio source
+
+The **Audio Source** dropdown decides what Goyak listens to, and it matters more than it looks:
+
+- **A specific application** (recommended) — captures only that process. Goyak's own
+  dubbed audio can never leak into the capture, so translation runs continuously
+  while the dub plays.
+- **System Audio (all applications)** — captures the default playback device. That
+  device is also where the dub comes out, so Goyak pauses capture while it is
+  speaking to stop it translating its own voice over and over. Dialogue that
+  overlaps the dub is skipped.
+
+To get uninterrupted translation with **System Audio**, send the dub to a
+*different* output device (a second sound card, headphones, or a virtual cable).
+Goyak detects this and keeps capture running full duplex.
+
 ## 💖 Support & Donate
 
 If you find Goyak useful and would like to support its development, you can donate via Coffeete:

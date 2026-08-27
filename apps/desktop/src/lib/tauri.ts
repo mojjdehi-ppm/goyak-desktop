@@ -47,6 +47,10 @@ export async function fetchAudioDevices(): Promise<AudioDeviceInfo[]> {
   }
 }
 
+/**
+ * Rejects with the backend's error message. Swallowing it here left the UI
+ * unable to explain why a run failed (e.g. an unusable audio source).
+ */
 export async function startDubbingCommand(params: {
   appId?: string;
   sourceLanguage: string;
@@ -59,19 +63,16 @@ export async function startDubbingCommand(params: {
 }): Promise<boolean> {
   await tauriReady;
   if (!invokeTauri) return false;
-  try {
-    return await invokeTauri('start_dubbing', {
-      appId: params.appId,
-      sourceLanguage: params.sourceLanguage,
-      targetLanguage: params.targetLanguage,
-      apiKey: params.apiKey,
-      outputDeviceId: params.outputDeviceId,
-      voiceTone: params.voiceTone,
-      voiceVibe: params.voiceVibe,
-    });
-  } catch (e) {
-    return false;
-  }
+  return await invokeTauri('start_dubbing', {
+    appId: params.appId,
+    sourceLanguage: params.sourceLanguage,
+    targetLanguage: params.targetLanguage,
+    apiKey: params.apiKey,
+    outputDeviceId: params.outputDeviceId,
+    model: params.model,
+    voiceTone: params.voiceTone,
+    voiceVibe: params.voiceVibe,
+  });
 }
 
 export async function stopDubbingCommand(): Promise<boolean> {

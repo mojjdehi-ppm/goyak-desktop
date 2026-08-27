@@ -60,3 +60,4 @@ jobs:
         run: |
           cd apps/desktop/src-tauri
           cargo check
+          cargo check --tests

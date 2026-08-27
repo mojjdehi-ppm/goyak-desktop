@@ -32,7 +32,7 @@ impl Default for AppState {
     fn default() -> Self {
         Self {
             is_dubbing_active: Arc::new(Mutex::new(false)),
-            selected_app_id: Arc::new(Mutex::new(Some("chrome".to_string()))),
+            selected_app_id: Arc::new(Mutex::new(Some("system".to_string()))),
             source_language: Arc::new(Mutex::new("auto".to_string())),
             target_language: Arc::new(Mutex::new("fa".to_string())),
             dubbed_volume: Arc::new(Mutex::new(0.85)),
