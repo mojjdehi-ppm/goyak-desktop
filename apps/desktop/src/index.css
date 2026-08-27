@@ -1,15 +1,69 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
-@plugin "daisyui";
 
-:root, [data-theme], html {
-  --color-primary: #7b3aec !important;
-  --color-primary-content: #ffffff !important;
-  --p: #7b3aec !important;
-  --pc: #ffffff !important;
+/* daisyUI 5 is configured HERE, not in tailwind.config.js - the v4-style
+   `daisyui:` key there was silently ignored, which left the app on daisyUI's
+   default LIGHT theme: light control pills and near-black `base-content` text
+   on our black background (invisible labels). This theme is the single source
+   of truth for all base-*/semantic tokens. */
+@plugin "daisyui" {
+  themes: false;
 }
 
+@plugin "daisyui/theme" {
+  name: "goyakdark";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+
+  --color-base-100: #09090b;
+  --color-base-200: #121217;
+  --color-base-300: #1c1c24;
+  --color-base-content: #f4f4f5;
+
+  --color-primary: #7b3aec;
+  --color-primary-content: #ffffff;
+  --color-secondary: #1c1c24;
+  --color-secondary-content: #e4e4e7;
+  --color-accent: #272730;
+  --color-accent-content: #f4f4f5;
+  --color-neutral: #272730;
+  --color-neutral-content: #f4f4f5;
+
+  --color-info: #38bdf8;
+  --color-info-content: #082f49;
+  --color-success: #34d399;
+  --color-success-content: #052e21;
+  --color-warning: #fbbf24;
+  --color-warning-content: #451a03;
+  /* rose-400 instead of #e11d48: the darker red fails 4.5:1 for small
+     error text on this near-black background. */
+  --color-error: #fb7185;
+  --color-error-content: #4c0519;
+
+  --radius-selector: 0.75rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* Base surface tokens are declared inside @theme as well as in the daisyUI
+   theme, so Tailwind itself generates the bg-base-* and text-base-content
+   utilities. Relying on the plugin alone left them undefined in the build,
+   which rendered every base-200 surface - dropdown menus included - fully
+   transparent. --color-elevated is the solid surface for floating menus, one
+   step lighter than fields so an open menu clearly sits above the page.
+   NOTE: Tailwind v4 forbids comments inside @theme blocks. */
 @theme {
+  --color-base-100: #09090b;
+  --color-base-200: #121217;
+  --color-base-300: #1c1c24;
+  --color-base-content: #f4f4f5;
+  --color-elevated: #17171f;
   --color-background: #09090b;
   --color-foreground: #f4f4f5;
   --color-card: #121217;
@@ -95,4 +149,39 @@
 
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+/* Accessibility: honor the OS "reduce motion" preference. The pulse rings,
+   wave bars and spinners are decorative - state is always readable without
+   them, so they can be safely stilled. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Keyboard navigation: a clear, consistent focus ring everywhere. */
+:focus-visible {
+  outline: 2px solid #7b3aec;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Slim scrollbars that belong to the dark surface instead of shouting. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(244, 244, 245, 0.12);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 244, 245, 0.22);
 }

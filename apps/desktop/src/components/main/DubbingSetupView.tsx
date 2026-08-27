@@ -1,9 +1,25 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Key } from 'lucide-react';
+import { Info, Key, Mic } from 'lucide-react';
 import { AppSelector } from './AppSelector';
 import { LanguageSelector } from './LanguageSelector';
 import { AudioApplicationInfo, AudioDeviceInfo } from '../../types/audio';
+import { ChevronDown } from 'lucide-react';
+
+const SYSTEM_AUDIO_ID = 'system';
+
+/** Shared label treatment: quiet, uppercase, consistent rhythm. */
+export const FieldLabel: React.FC<{ htmlFor?: string; children: React.ReactNode }> = ({
+  htmlFor,
+  children,
+}) => (
+  <label
+    htmlFor={htmlFor}
+    className="text-[11px] uppercase tracking-wider font-semibold text-base-content/45 block text-start"
+  >
+    {children}
+  </label>
+);
 
 interface DubbingSetupViewProps {
   applications: AudioApplicationInfo[];
@@ -43,7 +59,7 @@ export const DubbingSetupView: React.FC<DubbingSetupViewProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="w-full max-w-lg mx-auto p-4 md:p-6 space-y-5 select-none animate-in fade-in duration-300">
+    <div className="w-full max-w-lg mx-auto space-y-6 select-none animate-in fade-in duration-300">
       <div className="space-y-5 relative">
         <AppSelector
           applications={applications}
@@ -61,35 +77,49 @@ export const DubbingSetupView: React.FC<DubbingSetupViewProps> = ({
           disabled={isDubbingActive}
         />
 
-        <div className="space-y-2 pt-1 relative z-10">
-          <label className="text-xs font-semibold text-base-content/70 block text-start">
-            {t('home.outputDevice')}
-          </label>
-          <select
-            value={selectedOutputId}
-            onChange={(e) => onSelectOutputId(e.target.value)}
-            disabled={isDubbingActive}
-            className="w-full bg-base-300 border border-base-300/80 text-base-content text-sm rounded-xl p-3.5 focus:outline-none focus:border-primary transition-colors disabled:opacity-50 appearance-none cursor-pointer"
-          >
-            {outputDevices.map((dev) => (
-              <option key={dev.id} value={dev.id} className="bg-base-200 text-base-content py-2">
-                {dev.name} {dev.isDefault ? `(${t('home.defaultDevice')})` : ''}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-2 relative z-10">
+          <FieldLabel htmlFor="output-device">{t('home.outputDevice')}</FieldLabel>
+          <div className="relative">
+            <select
+              id="output-device"
+              value={selectedOutputId}
+              onChange={(e) => onSelectOutputId(e.target.value)}
+              disabled={isDubbingActive}
+              className="w-full h-12 bg-base-200 border border-base-content/[0.07] hover:border-base-content/[0.14] text-base-content text-sm rounded-xl px-4 pr-10 rtl:pr-4 rtl:pl-10 focus:outline-none focus:border-primary transition-colors disabled:opacity-50 appearance-none cursor-pointer"
+            >
+              {outputDevices.map((dev) => (
+                <option key={dev.id} value={dev.id} className="bg-base-200 text-base-content py-2">
+                  {dev.name} {dev.isDefault ? `(${t('home.defaultDevice')})` : ''}
+                </option>
+              ))}
+            </select>
+            {/* appearance-none strips the native arrow; without one the select
+                reads as a plain text box. */}
+            <ChevronDown className="w-4 h-4 text-base-content/50 absolute right-3.5 rtl:right-auto rtl:left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
+
+        {/* Error prevention: with System Audio + the same output device, the
+            echo guard pauses listening while the dub plays. Say so up front
+            instead of letting users discover it as "missing dialogue". */}
+        {selectedAppId === SYSTEM_AUDIO_ID && (
+          <div className="flex items-start gap-2.5 text-xs leading-relaxed text-base-content/50 text-start px-1">
+            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-info" />
+            <span>{t('home.systemAudioHint')}</span>
+          </div>
+        )}
       </div>
 
       {isApiKeyMissing && (
-        <div className="alert alert-warning p-4 bg-warning/20 border border-warning/30 rounded-2xl flex items-center justify-between gap-3 text-warning text-xs shadow-md">
-          <div className="flex items-center space-x-2.5 rtl:space-x-reverse">
-            <Key className="w-4 h-4 text-warning shrink-0" />
-            <span dangerouslySetInnerHTML={{ __html: t('home.missingApiKey') }} />
+        <div className="flex items-center justify-between gap-3 text-xs text-warning bg-warning/10 border border-warning/20 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2.5 rtl:space-x-reverse min-w-0">
+            <Key className="w-4 h-4 shrink-0" />
+            <span className="text-start" dangerouslySetInnerHTML={{ __html: t('home.missingApiKey') }} />
           </div>
           {onOpenSettings && (
             <button
               onClick={onOpenSettings}
-              className="btn btn-warning btn-xs px-3.5 py-1.5 font-semibold rounded-xl shrink-0 transition-colors cursor-pointer"
+              className="text-xs px-3 py-1.5 font-semibold rounded-lg shrink-0 bg-warning/15 hover:bg-warning/25 transition-colors cursor-pointer"
             >
               {t('home.openSettings')}
             </button>
@@ -97,15 +127,13 @@ export const DubbingSetupView: React.FC<DubbingSetupViewProps> = ({
         </div>
       )}
 
-      <div className="flex justify-center pt-1">
-        <button
-          onClick={onStartDubbing}
-          className="btn btn-lg btn-primary btn-block py-6 px-8 rounded-2xl font-bold text-lg flex items-center justify-center space-x-3 rtl:space-x-reverse shadow-xl transition-transform active:scale-95 cursor-pointer"
-        >
-          <Mic className="w-6 h-6" />
-          <span>{t('home.startDubbing')}</span>
-        </button>
-      </div>
+      <button
+        onClick={onStartDubbing}
+        className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-primary-content font-semibold text-base flex items-center justify-center gap-2.5 rtl:space-x-reverse shadow-lg shadow-primary/20 transition-all active:scale-[0.99] cursor-pointer"
+      >
+        <Mic className="w-5 h-5" />
+        <span>{t('home.startDubbing')}</span>
+      </button>
     </div>
   );
 };

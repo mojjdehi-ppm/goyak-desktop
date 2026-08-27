@@ -16,10 +16,13 @@
         "width": 800,
         "height": 600,
         "decorations": false,
-        "resizable": false,
+        "resizable": true,
         "fullscreen": false,
         "center": true,
-        "devtools": false
+        "devtools": false,
+        "maximizable": true,
+        "minWidth": 560,
+        "minHeight": 520
       }
     ],
     "security": {

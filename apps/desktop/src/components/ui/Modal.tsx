@@ -67,15 +67,18 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
+    // Positioning is explicit rather than via daisyUI's `modal` classes: when
+    // those aren't emitted, the dialog silently drops into page flow and
+    // renders at the bottom of the document.
     <div
       onClick={handleOverlayClick}
-      className="modal modal-open bg-black/80 backdrop-blur-sm p-3 sm:p-4 z-50 transition-opacity duration-150 flex items-center justify-center"
+      className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm p-3 sm:p-4 transition-opacity duration-150 flex items-center justify-center"
       role="dialog"
       aria-modal="true"
     >
       <div
         ref={modalRef}
-        className={`modal-box p-0 bg-base-200 border border-base-300/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col ${sizeClasses[size]} ${className}`}
+        className={`w-full max-h-[90vh] p-0 bg-base-200 border border-base-content/[0.09] rounded-3xl shadow-2xl shadow-black/60 overflow-hidden flex flex-col ${sizeClasses[size]} ${className}`}
       >
         {(title || showCloseButton) && (
           <div className={`px-6 py-4 border-b border-base-300/80 flex items-center justify-between shrink-0 bg-base-200 ${headerClassName}`}>

@@ -25,7 +25,10 @@ export function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 flex items-center justify-center">
+      {/* No items-center/justify-center here: on a scroll container they clip
+          overflowing content with no way to scroll to it. The child centers
+          itself with m-auto instead, which degrades gracefully to scrolling. */}
+      <main className="flex-1 overflow-y-auto p-4 flex">
         <DubbingDashboard onOpenSettings={() => setIsSettingsOpen(true)} />
       </main>
 
