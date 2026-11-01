@@ -1,0 +1,725 @@
+<title>Ritm Live Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: dispatcher console — live loop map on the left, control panels on the right, stacking to one column on phones. */
+:root {
+  --bg: #F1EFE9;
+  --panel: #FFFDF8;
+  --panel-2: #F7F4EC;
+  --ink: #14212E;
+  --muted: #586473;
+  --line: #DCD7CB;
+  --accent: #B8690C;      /* bus amber, darkened for light ground */
+  --accent-ink: #FFFDF8;
+  --hold: #1F7A6F;        /* holding / Ritm teal */
+  --free: #2F8F6A;
+  --slow: #C98A12;
+  --jam: #C0392B;
+  --bad: #B23A23;
+  --gap: #6B4FB0;
+  --route: #C9C3B5;
+  --font-display: 'Archivo', 'Arial Narrow', Arial, sans-serif;
+  --font-body: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1823; --panel: #162432; --panel-2: #1B2C3C; --ink: #EDF1F4; --muted: #9AA8B6; --line: #283B4E;
+    --accent: #F2A33A; --accent-ink: #14212E; --hold: #5CC8B8; --free: #4CC08F; --slow: #E8B23A; --jam: #FF6B57;
+    --bad: #FF7A5C; --gap: #B59CFF; --route: #34485C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1823; --panel: #162432; --panel-2: #1B2C3C; --ink: #EDF1F4; --muted: #9AA8B6; --line: #283B4E;
+  --accent: #F2A33A; --accent-ink: #14212E; --hold: #5CC8B8; --free: #4CC08F; --slow: #E8B23A; --jam: #FF6B57;
+  --bad: #FF7A5C; --gap: #B59CFF; --route: #34485C; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.brand { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.brand h1 { font-family: var(--font-display); font-weight: 800; font-size: 34px; letter-spacing: -0.5px; margin: 0; line-height: 1; }
+.brand p { margin: 0; color: var(--muted); font-size: 14px; }
+.sim-note { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); font-weight: 600; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--panel); }
+.seg button { border: 0; background: transparent; color: var(--muted); font: 600 14px var(--font-body); padding: 7px 16px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.seg button.on[aria-pressed="true"] { background: var(--hold); color: var(--panel); }
+.btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: 500 14px var(--font-body); padding: 8px 14px; border-radius: 10px; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn[aria-pressed="true"] { border-color: var(--jam); color: var(--jam); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--hold); border-color: var(--hold); color: var(--panel); font-weight: 600; }
+button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+select { font: 500 14px var(--font-body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 960px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; min-width: 0; }
+.panel h2 { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin: 0 0 10px; letter-spacing: .1px; }
+.panel h2 small { font-family: var(--font-body); font-weight: 500; font-size: 12px; color: var(--muted); margin-left: 6px; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* map */
+.map svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 5px; border-radius: 3px; display: inline-block; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+
+/* KPIs */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.kpi { background: var(--panel-2); border-radius: 10px; padding: 12px; min-width: 0; }
+.kpi .lab { font-size: 12px; color: var(--muted); font-weight: 500; }
+.kpi .val { font-family: var(--font-data); font-weight: 600; font-size: 28px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kpi .sub { font-size: 12px; color: var(--muted); }
+.pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; letter-spacing: .3px; }
+.pill.good { background: color-mix(in srgb, var(--free) 18%, transparent); color: var(--free); }
+.pill.warn { background: color-mix(in srgb, var(--slow) 20%, transparent); color: var(--slow); }
+.pill.bad { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.chart { margin-top: 10px; }
+.chart svg { width: 100%; height: 90px; display: block; }
+
+/* tablet */
+.tablet { background: #12202E; color: #EEF1F4; border-radius: 22px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; border: 6px solid #22354A; }
+.tablet .t-top { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #9AA8B6; }
+.tablet .t-state { font-weight: 600; font-size: 15px; }
+.tablet .t-big { font-family: var(--font-data); font-weight: 600; font-size: 54px; line-height: 1; color: #F2A33A; font-variant-numeric: tabular-nums; }
+.tablet .t-big.go { color: #5CC8B8; font-size: 34px; }
+.tablet .t-gaps { display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid #2E4256; padding-top: 8px; font-family: var(--font-data); font-size: 13px; color: #C9D3DC; }
+.tablet .t-note { font-size: 12px; color: #9AA8B6; min-height: 1.4em; }
+.tablet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+
+/* reserve */
+.card { border: 1px solid var(--hold); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: color-mix(in srgb, var(--hold) 7%, var(--panel)); }
+.card .c-title { font-weight: 600; }
+.card .c-meta { font-size: 13px; color: var(--muted); }
+.card .c-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.hubs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+@media (max-width: 420px) { .hubs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hub { background: var(--panel-2); border-radius: 8px; padding: 8px; font-size: 12px; color: var(--muted); min-width: 0; }
+.hub b { display: block; color: var(--ink); font-family: var(--font-data); font-size: 18px; }
+.empty { font-size: 13px; color: var(--muted); padding: 10px 0; }
+
+/* bottom */
+.bottom { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 1100px) { .bottom { grid-template-columns: minmax(0, 1fr); } }
+.gapstrip { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.gapstrip div { display: flex; align-items: center; justify-content: center; font: 600 11px var(--font-data); color: var(--panel); min-width: 0; overflow: hidden; white-space: nowrap; border-right: 1px solid var(--panel); }
+.gapstrip div:last-child { border-right: 0; }
+.planned { display: flex; height: 8px; margin-top: 6px; gap: 2px; }
+.planned span { flex: 1; background: var(--route); border-radius: 2px; }
+.small { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.fc { display: flex; flex-direction: column; gap: 8px; }
+.fc-row { display: grid; grid-template-columns: minmax(0, 1fr) 70px 44px; gap: 8px; align-items: center; font-size: 13px; }
+.fc-row .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; text-align: center; }
+.bar { height: 8px; border-radius: 4px; background: var(--panel-2); position: relative; overflow: hidden; grid-column: 1 / -1; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); }
+.fc-row .num { font-family: var(--font-data); text-align: right; font-variant-numeric: tabular-nums; }
+.log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.log li { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; }
+.log time { font-family: var(--font-data); color: var(--muted); }
+
+/* svg classes */
+.r-seg { fill: none; stroke-width: 12; stroke-linecap: round; }
+.stop-c { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+.stop-n { font: 600 10px var(--font-data); fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+.stop-n.warn { fill: var(--slow); } .stop-n.bad { fill: var(--bad); }
+.stop-l { font: 500 13px var(--font-body); fill: var(--muted); }
+.hub-r { fill: var(--panel-2); stroke: var(--hold); stroke-width: 1.5; }
+.hub-t { font: 600 10px var(--font-data); fill: var(--hold); text-anchor: middle; dominant-baseline: central; }
+.bus-c { stroke: var(--panel); stroke-width: 2.5; cursor: pointer; }
+.bus-c.move { fill: var(--accent); } .bus-c.dwell { fill: var(--ink); } .bus-c.hold { fill: var(--hold); }
+.bus-c.res { stroke: var(--gap); stroke-width: 3.5; }
+.bus-sel { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 3 3; }
+.bus-t { font: 700 10px var(--font-data); fill: var(--panel); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.center-clock { font: 800 64px var(--font-display); fill: var(--ink); text-anchor: middle; }
+.center-sub { font: 500 15px var(--font-body); fill: var(--muted); text-anchor: middle; }
+.center-mode { font: 700 14px var(--font-body); text-anchor: middle; letter-spacing: 1.5px; }
+.ch-grid { stroke: var(--line); stroke-width: 1; }
+.ch-target { stroke: var(--free); stroke-width: 1; stroke-dasharray: 4 3; }
+.ch-line { fill: none; stroke: var(--ink); stroke-width: 2; }
+.ch-on { fill: color-mix(in srgb, var(--hold) 16%, transparent); }
+.ch-t { font: 500 9px var(--font-data); fill: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="sim-note">Simulated route · example data</span>
+      <h1>Ritm</h1>
+      <p>Headway, crowd and reserve-bus control for Baku buses</p>
+    </div>
+    <div class="toolbar" role="group" aria-label="Simulation controls">
+      <div class="seg" role="group" aria-label="Ritm control">
+        <button id="modeOff" aria-pressed="true" type="button">Ritm off</button>
+        <button id="modeOn" class="on" aria-pressed="false" type="button">Ritm on</button>
+      </div>
+      <button class="btn" id="btnRemove" type="button">Take a bus out of service</button>
+      <button class="btn" id="btnJam" type="button" aria-pressed="false">Traffic jam: Nərimanov–Xətai</button>
+      <button class="btn" id="btnRush" type="button">University rush</button>
+      <select id="speed" aria-label="Simulation speed">
+        <option value="10">10× speed</option>
+        <option value="30" selected>30× speed</option>
+        <option value="60">60× speed</option>
+      </select>
+      <button class="btn" id="btnPause" type="button">Pause</button>
+      <button class="btn" id="btnReset" type="button">Reset</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="panel map" aria-label="Live route map">
+      <h2>Example loop route <small>16 stops · 11 km · stop names for illustration</small></h2>
+      <svg id="map" viewBox="-110 20 1220 520" role="img" aria-label="Loop bus route with stops, buses and congestion measured from bus GPS"></svg>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--accent)"></i>Bus moving</span>
+        <span><i class="dot" style="background:var(--ink)"></i>Boarding</span>
+        <span><i class="dot" style="background:var(--hold)"></i>Ritm hold (boarding done)</span>
+        <span><i class="dot" style="background:transparent;border:3px solid var(--gap)"></i>Reserve bus</span>
+        <span><i class="sw" style="background:var(--free)"></i>Free flow</span>
+        <span><i class="sw" style="background:var(--slow)"></i>Slow</span>
+        <span><i class="sw" style="background:var(--jam)"></i>Jam</span>
+        <span>Street colours come from bus GPS speeds, not cameras. Numbers in stops are people waiting.</span>
+      </div>
+    </section>
+
+    <div class="col">
+      <section class="panel" aria-label="Service quality, last 30 minutes">
+        <h2>Service quality <small>last 30 simulated minutes</small></h2>
+        <div class="kpis">
+          <div class="kpi"><div class="lab">Interval irregularity (CV)</div><div class="val" id="kCv">—</div><div class="sub" id="kCvG">—</div></div>
+          <div class="kpi"><div class="lab">Average wait at a stop</div><div class="val" id="kWait">—</div><div class="sub" id="kWaitX">—</div></div>
+          <div class="kpi"><div class="lab">Buses arriving bunched</div><div class="val" id="kBun">—</div><div class="sub">gap under 25% of plan</div></div>
+          <div class="kpi"><div class="lab">Long gaps</div><div class="val" id="kGap">—</div><div class="sub">gap over 150% of plan</div></div>
+        </div>
+        <div class="chart">
+          <svg id="cvChart" viewBox="0 0 320 90" preserveAspectRatio="none" role="img" aria-label="Interval irregularity over time; shaded periods are Ritm on"></svg>
+          <div class="small">Irregularity over time. Shaded = Ritm on. Dashed line = target 0.30.</div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Driver tablet">
+        <h2>Driver tablet</h2>
+        <div class="tablet-row"><label for="busSel">Show bus</label><select id="busSel"></select></div>
+        <div class="tablet" aria-live="polite">
+          <div class="t-top"><span id="tBus">—</span><span id="tStop">—</span></div>
+          <div class="t-state" id="tState">—</div>
+          <div class="t-big" id="tBig">—</div>
+          <div class="t-note" id="tNote"></div>
+          <div class="t-gaps"><span id="tAhead">Gap ahead —</span><span id="tBehind">Gap behind —</span></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Reserve dispatch">
+        <h2>Reserve dispatch <small>dispatcher decides</small></h2>
+        <div id="resBox"></div>
+        <div class="hubs" id="hubs"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <section class="panel" aria-label="Gaps between buses">
+      <h2>Gaps between buses right now</h2>
+      <div class="gapstrip" id="gapStrip"></div>
+      <div class="planned" id="plannedStrip"></div>
+      <div class="small" id="gapNote">Top: real gaps around the loop. Bottom: what the timetable plans.</div>
+    </section>
+    <section class="panel" aria-label="Crowd forecast">
+      <h2>Crowd forecast <small>next bus, by stop</small></h2>
+      <div class="fc" id="fc"></div>
+      <div class="small">Demo model: arrival rate by place type and time of day × time until the next bus. The product uses LightGBM on AYNA passenger data.</div>
+    </section>
+    <section class="panel" aria-label="Event log">
+      <h2>Events</h2>
+      <ul class="log" id="log"></ul>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- network ----------
+  const STOPS = [
+    { n: '28 May', p: 'metro', hub: true },
+    { n: 'Nizami', p: 'office' },
+    { n: 'Gənclik', p: 'metro' },
+    { n: 'Gənclik Mall', p: 'mall' },
+    { n: 'Nərimanov', p: 'metro' },
+    { n: 'Koroğlu', p: 'metro', hub: true },
+    { n: 'Xətai pr.', p: 'office' },
+    { n: 'Ağ şəhər', p: 'office' },
+    { n: 'Neftçilər', p: 'school' },
+    { n: 'BDU', p: 'university' },
+    { n: 'Elmlər Akad.', p: 'university', hub: true },
+    { n: 'İnşaatçılar', p: 'school' },
+    { n: 'Park Bulvar', p: 'mall' },
+    { n: 'Sahil', p: 'metro', hub: true },
+    { n: 'İçərişəhər', p: 'office' },
+    { n: 'Füzuli m.', p: 'school' },
+  ];
+  const LENS = [650, 720, 580, 610, 800, 760, 700, 640, 820, 560, 700, 690, 630, 600, 710, 830];
+  const NS = STOPS.length;
+  const L = LENS.reduce((a, b) => a + b, 0);
+  const SPOS = []; { let s = 0; for (let i = 0; i < NS; i++) { SPOS.push(s); s += LENS[i]; } }
+  const VFREE = 7;                 // m/s free-flow bus speed (~25 km/h)
+  const NPLAN = 10;                // buses in the timetable
+  const CYCLE = L / (VFREE * 0.8) + NS * 25;
+  const HPLAN = CYCLE / NPLAN;     // planned interval, seconds
+  const JAM_SEGS = [4, 5];
+  const RUSH_STOPS = [9, 10];
+  const BASE = { metro: 0.05, office: 0.03, university: 0.035, school: 0.025, mall: 0.03 };
+  const ALIGHT = { metro: 0.3, office: 0.2, university: 0.25, school: 0.15, mall: 0.2 };
+  const PLACE = { metro: 'Metro', office: 'Offices', university: 'University', school: 'School', mall: 'Mall' };
+  const bump = (h, c, w) => Math.exp(-((h - c) ** 2) / (2 * w * w));
+  const PROFILE = {
+    metro: h => 0.8 + 1.0 * bump(h, 8.5, 0.8) + 1.1 * bump(h, 18, 1),
+    office: h => 0.3 + 1.2 * bump(h, 8.7, 0.6) + 1.3 * bump(h, 18.2, 0.8),
+    university: h => 0.3 + 1.3 * bump(h, 8.5, 0.6) + 1.4 * bump(h, 17.3, 0.7),
+    school: h => 0.2 + 1.2 * bump(h, 8, 0.4) + 0.9 * bump(h, 13.3, 0.5) + 0.4 * bump(h, 17, 0.6),
+    mall: h => 0.3 + 0.6 * bump(h, 13, 1.5) + 1.2 * bump(h, 19.5, 1.5),
+  };
+  const START_CLOCK = 17 * 3600; // 17:00
+
+  // ---------- rng ----------
+  let seed = 7;
+  function rng() { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+
+  // ---------- state ----------
+  let S;
+  function init() {
+    seed = 7;
+    S = {
+      t: 0, ritm: S ? S.ritm : false, jam: false, rushUntil: -1,
+      buses: [], waiting: new Array(NS).fill(0), lastArr: new Array(NS).fill(null), lastDep: new Array(NS).fill(null),
+      headways: [], cvHist: [], segBase: LENS.map(() => 0.68 + 0.27 * rng()), cong: LENS.map(() => 0.8),
+      hubs: STOPS.map((s, i) => s.hub ? { stop: i, name: s.n, n: 5 } : null).filter(Boolean),
+      card: null, cardCool: 0, pending: [], resCount: 0, log: [], sel: null, nextId: 1,
+    };
+    const sp = L / NPLAN;
+    for (let k = 0; k < NPLAN; k++) {
+      const pos = ((k * sp + (rng() - 0.5) * 0.3 * sp) + L) % L;
+      S.buses.push(newBus(String(S.nextId++), pos, 90, false));
+    }
+    for (let i = 0; i < NS; i++) S.waiting[i] = Math.round(3 + rng() * 5);
+    S.sel = S.buses[0].id;
+    addLog('Service starts with 10 buses, planned interval ' + fmt(HPLAN));
+  }
+  function newBus(id, pos, cap, reserve) {
+    return { id, pos, cap, reserve, load: Math.round(cap * 0.35), state: 'move', timer: 0, atStop: -1, nextStop: nextStopFrom(pos),
+      noise: 0.85 + 0.3 * rng(), segMove: 0, fresh: true, extra: 0, slow: false, hold: 0, gapAhead: null, gapBehind: null, lastStop: -1 };
+  }
+  function nextStopFrom(pos) { for (let i = 0; i < NS; i++) if (SPOS[i] > pos + 0.01) return i; return 0; }
+  const fwd = (a, b) => ((b - a) % L + L) % L; // forward distance from a to b
+  const clockH = () => (START_CLOCK + S.t) / 3600;
+  function clockStr(t = S.t) { const s = Math.floor(START_CLOCK + t); const h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60; return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); }
+  function fmt(sec) { if (sec == null || !isFinite(sec)) return '—'; const s = Math.max(0, Math.round(sec)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  function addLog(msg) { S.log.unshift({ t: clockStr(), msg }); S.log = S.log.slice(0, 7); }
+
+  function segFactor(i) {
+    let f = S.segBase[i] * (1 + 0.12 * Math.sin(S.t / 600 + i * 1.7));
+    if (S.jam && JAM_SEGS.includes(i)) f *= 0.33;
+    return f;
+  }
+  function segAt(pos) { for (let i = NS - 1; i >= 0; i--) if (pos >= SPOS[i]) return i; return 0; }
+  function rate(i) {
+    const st = STOPS[i];
+    let r = BASE[st.p] * PROFILE[st.p](clockH());
+    if (S.t < S.rushUntil && RUSH_STOPS.includes(i)) r *= 4;
+    return r;
+  }
+
+  // ---------- simulation step (1 s) ----------
+  function step() {
+    S.t += 1;
+    // passengers
+    for (let i = 0; i < NS; i++) {
+      if (rng() < rate(i)) {
+        const b = S.buses.find(x => x.atStop === i && (x.state === 'dwell' || x.state === 'hold') && x.load < x.cap);
+        if (b) b.load++; else S.waiting[i]++;
+      }
+    }
+    // buses
+    for (const b of S.buses) {
+      if (b.state === 'move') {
+        const seg = segAt(b.pos);
+        const v = VFREE * segFactor(seg) * b.noise;
+        const d = fwd(b.pos, SPOS[b.nextStop]);
+        b.segMove += 1;
+        if (v >= d) arrive(b, b.nextStop);
+        else b.pos = (b.pos + v) % L;
+      } else {
+        b.timer -= 1;
+        if (b.timer <= 0) { if (b.state === 'dwell') afterBoarding(b); else depart(b); }
+      }
+    }
+    // reserve insertions
+    for (let k = S.pending.length - 1; k >= 0; k--) {
+      const p = S.pending[k];
+      if (S.t >= p.at) {
+        const b = newBus(p.id, (SPOS[p.stop] - 3 + L) % L, p.cap, true);
+        b.load = 0; b.nextStop = p.stop;
+        S.buses.push(b);
+        S.pending.splice(k, 1);
+        addLog(`Reserve ${p.id} joins the route at ${STOPS[p.stop].n}`);
+        rebuildBusSelect();
+      }
+    }
+    if (S.t % 60 === 0) {
+      const k = kpis();
+      S.cvHist.push({ t: S.t, cv: k ? k.cv : null, on: S.ritm });
+      if (S.cvHist.length > 150) S.cvHist.shift();
+    }
+    if (S.t % 20 === 0) checkReserve();
+  }
+
+  function arrive(b, i) {
+    b.pos = SPOS[i]; b.atStop = i;
+    const seg = (i - 1 + NS) % NS;
+    if (!b.fresh && b.segMove > 0) {
+      const ratio = Math.min(1.2, (LENS[seg] / b.segMove) / VFREE);
+      S.cong[seg] = 0.7 * S.cong[seg] + 0.3 * ratio;
+    }
+    b.fresh = false;
+    if (S.lastArr[i] != null) S.headways.push({ t: S.t, h: S.t - S.lastArr[i] });
+    S.lastArr[i] = S.t;
+    const alight = Math.round(b.load * ALIGHT[STOPS[i].p]);
+    b.load -= alight;
+    const board = Math.min(S.waiting[i], b.cap - b.load);
+    b.load += board; S.waiting[i] -= board;
+    const slow = board > 0 && rng() < 0.07;
+    b.extra = slow ? 25 : 0; b.slow = slow;
+    b.state = 'dwell';
+    b.timer = Math.round(6 + 1.2 * alight + 2.2 * board + b.extra);
+    b.hold = 0;
+  }
+
+  function follower(b) {
+    let best = null, bd = Infinity;
+    for (const x of S.buses) { if (x === b) continue; let d = fwd(x.pos, b.pos); if (d < 0.5) d = 0; if (d < bd) { bd = d; best = x; } }
+    return best;
+  }
+  function estTime(f, stop) {
+    const dist = fwd(f.pos, SPOS[stop]);
+    let between = 0;
+    for (let j = 0; j < NS; j++) { const dj = fwd(f.pos, SPOS[j]); if (dj > 0.5 && dj < dist - 0.5) between++; }
+    return dist / (VFREE * 0.8) + between * 22 + (f.state !== 'move' ? Math.max(0, f.timer) : 0);
+  }
+  function afterBoarding(b) {
+    const i = b.atStop;
+    b.gapAhead = S.lastDep[i] == null ? HPLAN : S.t - S.lastDep[i];
+    const f = follower(b);
+    b.gapBehind = f ? estTime(f, i) : null;
+    if (!S.ritm || !f) { depart(b); return; }
+    const raw = 0.5 * (b.gapBehind - b.gapAhead);
+    const hold = Math.max(0, Math.min(90, raw - b.extra));
+    if (hold >= 3) { b.state = 'hold'; b.timer = Math.round(hold); b.hold = Math.round(hold); }
+    else depart(b);
+  }
+  function depart(b) {
+    S.lastDep[b.atStop] = S.t; b.lastStop = b.atStop;
+    b.state = 'move'; b.nextStop = (b.atStop + 1) % NS; b.atStop = -1;
+    b.noise = 0.85 + 0.3 * rng(); b.segMove = 0; b.hold = 0;
+  }
+
+  // ---------- KPIs ----------
+  function kpis() {
+    const w = S.headways.filter(x => x.t > S.t - 1800).map(x => x.h);
+    if (w.length < 12) return null;
+    const mean = w.reduce((a, b) => a + b, 0) / w.length;
+    const sd = Math.sqrt(w.reduce((a, b) => a + (b - mean) ** 2, 0) / w.length);
+    const cv = sd / mean;
+    const awt = mean / 2 * (1 + cv * cv);
+    return { cv, awt, ewt: awt - HPLAN / 2, bun: w.filter(h => h < 0.25 * HPLAN).length / w.length, gap: w.filter(h => h > 1.5 * HPLAN).length / w.length };
+  }
+  function grade(cv) {
+    if (cv < 0.21) return ['A · very regular', 'good']; if (cv < 0.31) return ['B · regular', 'good'];
+    if (cv < 0.40) return ['C · fair', 'warn']; if (cv < 0.53) return ['D · irregular', 'warn'];
+    if (cv < 0.75) return ['E · very irregular', 'bad']; return ['F · bunched', 'bad'];
+  }
+
+  // ---------- gaps & reserve ----------
+  function gaps() {
+    const bs = [...S.buses].sort((a, b) => a.pos - b.pos);
+    const out = [];
+    for (let k = 0; k < bs.length; k++) {
+      const back = bs[k], front = bs[(k + 1) % bs.length];
+      const dist = bs.length === 1 ? L : fwd(back.pos, front.pos);
+      let between = 0; for (let j = 0; j < NS; j++) { const dj = fwd(back.pos, SPOS[j]); if (dj > 0.5 && dj < dist) between++; }
+      out.push({ back, front, dist, time: dist / (VFREE * 0.8) + between * 22 });
+    }
+    return out;
+  }
+  function checkReserve() {
+    if (!S.ritm || S.card || S.t < S.cardCool || S.pending.length) return;
+    if (!S.hubs.some(h => h.n > 0)) return;
+    const g = gaps(); if (!g.length) return;
+    const big = g.reduce((a, b) => b.time > a.time ? b : a);
+    if (big.time < 1.9 * HPLAN) return;
+    const target = (big.back.pos + big.dist * 0.55) % L;
+    const stop = nextStopFrom(target);
+    let helped = 0;
+    for (let j = 0; j < NS; j++) { const dj = fwd(SPOS[stop], SPOS[j]); if (dj < fwd(SPOS[stop], big.front.pos)) helped += S.waiting[j]; }
+    const hd = h => Math.min(Math.abs(h.stop - stop), NS - Math.abs(h.stop - stop));
+    const hub = S.hubs.filter(h => h.n > 0).reduce((a, b) => hd(b) < hd(a) ? b : a);
+    const eta = Math.round(4 + 0.9 * hd(hub));
+    S.resCount++;
+    const isMini = S.resCount % 2 === 1;
+    S.card = { stop, hub, eta, gap: big.time, helped, id: 'R-' + String(S.resCount).padStart(2, '0'), cap: isMini ? 45 : 90, kind: isMini ? 'minibus' : 'bus' };
+    addLog(`Ritm suggests reserve ${S.card.id} for a ${fmt(big.time)} gap`);
+  }
+  function approve() {
+    const c = S.card; if (!c) return;
+    c.hub.n--;
+    S.pending.push({ id: c.id, stop: c.stop, at: S.t + c.eta * 60, cap: c.cap });
+    addLog(`Dispatcher sends ${c.id} from ${c.hub.name} hub, ETA ${c.eta} min`);
+    S.card = null; S.cardCool = S.t + 300; render(true);
+  }
+  function decline() { if (!S.card) return; addLog(`Dispatcher declines ${S.card.id}`); S.resCount--; S.card = null; S.cardCool = S.t + 600; render(true); }
+
+  // ---------- map geometry ----------
+  const P = 1200 + 2 * Math.PI * 180;
+  function pt(u) {
+    u = ((u % P) + P) % P;
+    const a1 = 600, a2 = a1 + Math.PI * 180, a3 = a2 + 600;
+    if (u < a1) return [200 + u, 100];
+    if (u < a2) { const th = -Math.PI / 2 + (u - a1) / 180; return [800 + 180 * Math.cos(th), 280 + 180 * Math.sin(th)]; }
+    if (u < a3) return [800 - (u - a2), 460];
+    const th = Math.PI / 2 + (u - a3) / 180; return [200 + 180 * Math.cos(th), 280 + 180 * Math.sin(th)];
+  }
+  const toU = pos => pos / L * P;
+  const NSV = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NSV, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const map = document.getElementById('map');
+  let segEls = [], stopNum = [], busLayer, busEls = new Map(), clockEl, modeEl, subEl;
+  function buildMap() {
+    map.innerHTML = '';
+    el('path', { d: Array.from({ length: 241 }, (_, k) => (k ? 'L' : 'M') + pt(k / 240 * P).join(' ')).join(' ') + 'Z', fill: 'none', stroke: 'var(--route)', 'stroke-width': 18, 'stroke-linejoin': 'round' }, map);
+    segEls = LENS.map((len, i) => {
+      const u0 = toU(SPOS[i]), u1 = toU(SPOS[i] + len); const n = 24; let d = '';
+      for (let k = 0; k <= n; k++) { const p = pt(u0 + (u1 - u0) * k / n); d += (k ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }
+      return el('path', { d, class: 'r-seg' }, map);
+    });
+    const cx = 500, cy = 280;
+    stopNum = STOPS.map((s, i) => {
+      const [x, y] = pt(toU(SPOS[i]));
+      let dx = x - cx, dy = y - cy; const m = Math.hypot(dx, dy); dx /= m; dy /= m;
+      if (s.hub) {
+        const hx = x - dx * 34, hy = y - dy * 34;
+        el('rect', { x: hx - 13, y: hy - 9, width: 26, height: 18, rx: 4, class: 'hub-r' }, map);
+        s.hubText = el('text', { x: hx, y: hy, class: 'hub-t' }, map);
+      }
+      el('circle', { cx: x, cy: y, r: 12, class: 'stop-c' }, map);
+      const t = el('text', { x, y, class: 'stop-n' }, map);
+      const lx = x + dx * 28, ly = y + dy * 26 + (Math.abs(dy) > 0.8 ? (dy > 0 ? 6 : 0) : 4);
+      const lab = el('text', { x: lx, y: ly, class: 'stop-l', 'text-anchor': dx > 0.35 ? 'start' : dx < -0.35 ? 'end' : 'middle' }, map);
+      lab.textContent = s.n;
+      return t;
+    });
+    clockEl = el('text', { x: 500, y: 290, class: 'center-clock' }, map);
+    modeEl = el('text', { x: 500, y: 222, class: 'center-mode' }, map);
+    subEl = el('text', { x: 500, y: 330, class: 'center-sub' }, map);
+    el('text', { x: 500, y: 356, class: 'center-sub' }, map).textContent = 'Planned interval ' + fmt(HPLAN);
+    busLayer = el('g', {}, map);
+    busEls = new Map();
+  }
+  function drawMap() {
+    S.cong.forEach((c, i) => {
+      const col = c >= 0.75 ? 'var(--free)' : c >= 0.45 ? 'var(--slow)' : 'var(--jam)';
+      segEls[i].setAttribute('stroke', col);
+    });
+    STOPS.forEach((s, i) => {
+      const w = S.waiting[i]; stopNum[i].textContent = w;
+      stopNum[i].setAttribute('class', 'stop-n' + (w >= 40 ? ' bad' : w >= 22 ? ' warn' : ''));
+      if (s.hubText) { const h = S.hubs.find(x => x.stop === i); s.hubText.textContent = 'H' + h.n; }
+    });
+    clockEl.textContent = clockStr();
+    modeEl.textContent = S.ritm ? 'RITM ON' : 'RITM OFF';
+    modeEl.setAttribute('fill', S.ritm ? 'var(--hold)' : 'var(--muted)');
+    subEl.textContent = S.buses.length + ' buses running' + (S.pending.length ? ' · ' + S.pending.length + ' reserve on the way' : '');
+    const live = new Set();
+    for (const b of S.buses) {
+      live.add(b.id);
+      let g = busEls.get(b.id);
+      if (!g) {
+        g = el('g', { tabindex: -1 }, busLayer);
+        g._sel = el('circle', { r: 19, class: 'bus-sel' }, g);
+        g._c = el('circle', { r: 14 }, g);
+        g._t = el('text', { class: 'bus-t' }, g); g._t.textContent = b.id;
+        g.addEventListener('click', () => { S.sel = b.id; document.getElementById('busSel').value = b.id; renderTablet(); drawMap(); });
+        busEls.set(b.id, g);
+      }
+      const [x, y] = pt(toU(b.pos));
+      // offset buses sharing a stop so both are visible
+      const twins = S.buses.filter(o => o !== b && Math.abs(o.pos - b.pos) < 30);
+      const off = twins.length ? (S.buses.indexOf(b) % 2 ? 9 : -9) : 0;
+      g.setAttribute('transform', `translate(${x + off} ${y + off * 0.4})`);
+      g._c.setAttribute('class', 'bus-c ' + b.state + (b.reserve ? ' res' : ''));
+      g._sel.setAttribute('visibility', S.sel === b.id ? 'visible' : 'hidden');
+      g._t.textContent = b.reserve ? 'R' : b.id;
+    }
+    for (const [id, g] of busEls) if (!live.has(id)) { g.remove(); busEls.delete(id); }
+  }
+
+  // ---------- panels ----------
+  const $ = id => document.getElementById(id);
+  function renderKpis() {
+    const k = kpis();
+    if (!k) { ['kCv', 'kWait', 'kBun', 'kGap'].forEach(i => $(i).textContent = '—'); $('kCvG').textContent = 'collecting data'; $('kWaitX').textContent = '—'; return; }
+    $('kCv').textContent = k.cv.toFixed(2);
+    const [g, cls] = grade(k.cv); $('kCvG').innerHTML = `<span class="pill ${cls}">${g}</span>`;
+    $('kWait').textContent = fmt(k.awt);
+    $('kWaitX').textContent = (k.ewt >= 0 ? '+' : '−') + fmt(Math.abs(k.ewt)) + ' vs timetable';
+    $('kBun').textContent = Math.round(k.bun * 100) + '%';
+    $('kGap').textContent = Math.round(k.gap * 100) + '%';
+  }
+  function renderChart() {
+    const svg = $('cvChart'); const W = 320, H = 90, pad = 4, top = 4, bot = 80;
+    const pts = S.cvHist; const ymax = 1.2;
+    const y = v => bot - (Math.min(v, ymax) / ymax) * (bot - top);
+    let h = '';
+    [0.3].forEach(v => h += `<line class="ch-target" x1="0" x2="${W}" y1="${y(v)}" y2="${y(v)}"/>`);
+    h += `<line class="ch-grid" x1="0" x2="${W}" y1="${bot}" y2="${bot}"/>`;
+    if (pts.length > 1) {
+      const n = pts.length, x = i => pad + i / (n - 1) * (W - 2 * pad);
+      for (let i = 0; i < n - 1; i++) if (pts[i + 1].on) h += `<rect class="ch-on" x="${x(i)}" y="${top}" width="${x(i + 1) - x(i) + 0.5}" height="${bot - top}"/>`;
+      const d = pts.map((p, i) => p.cv == null ? null : `${x(i).toFixed(1)},${y(p.cv).toFixed(1)}`).filter(Boolean);
+      if (d.length > 1) h += `<polyline class="ch-line" points="${d.join(' ')}"/>`;
+    }
+    h += `<text class="ch-t" x="${W - 2}" y="${y(0.3) - 3}" text-anchor="end">0.30 target</text><text class="ch-t" x="2" y="${y(1.0) + 8}">1.0</text>`;
+    svg.innerHTML = h;
+  }
+  function rebuildBusSelect() {
+    const sel = $('busSel');
+    const ids = S.buses.map(b => b.id);
+    if (!ids.includes(S.sel)) S.sel = ids[0];
+    sel.innerHTML = S.buses.map(b => `<option value="${b.id}">${b.reserve ? 'Reserve ' + b.id : 'Bus ' + b.id}</option>`).join('');
+    sel.value = S.sel;
+  }
+  function renderTablet() {
+    const b = S.buses.find(x => x.id === S.sel); if (!b) return;
+    $('tBus').textContent = (b.reserve ? 'Reserve ' : 'Bus ') + b.id + ' · ' + b.load + '/' + b.cap + ' on board';
+    const big = $('tBig'); big.classList.remove('go');
+    if (b.state === 'move') {
+      $('tStop').textContent = 'Next: ' + STOPS[b.nextStop].n;
+      $('tState').textContent = 'Driving';
+      big.textContent = '—'; $('tNote').textContent = 'Serve every stop as normal.';
+    } else if (b.state === 'dwell') {
+      $('tStop').textContent = 'At: ' + STOPS[b.atStop].n;
+      $('tState').textContent = 'Boarding in progress';
+      big.textContent = '…';
+      $('tNote').textContent = b.slow ? 'A passenger needs extra time. Take as long as needed.' : 'Let everyone board and get off. No countdown yet.';
+    } else {
+      $('tStop').textContent = 'At: ' + STOPS[b.atStop].n;
+      $('tState').textContent = 'Boarding complete · earliest departure in';
+      big.textContent = Math.max(0, Math.round(b.timer)) + ' s';
+      $('tNote').textContent = 'The bus behind is further away than the bus ahead. Keep doors open for late arrivals.';
+    }
+    if (!S.ritm && b.state !== 'move') { $('tNote').textContent = 'Ritm is off: the bus leaves as soon as boarding ends.'; }
+    if (S.ritm && b.state === 'move' && b.lastStop >= 0) { big.classList.add('go'); big.textContent = 'On rhythm'; }
+    $('tAhead').textContent = 'Gap ahead ' + fmt(b.gapAhead);
+    $('tBehind').textContent = 'Gap behind ' + fmt(b.gapBehind);
+  }
+  function renderReserve() {
+    const box = $('resBox');
+    if (!S.ritm) box.innerHTML = '<div class="empty">Turn Ritm on to get reserve-bus suggestions.</div>';
+    else if (S.card) {
+      const c = S.card;
+      box.innerHTML = `<div class="card"><div class="c-title">Send reserve ${c.id} (${c.kind}) from ${c.hub.name} hub to ${STOPS[c.stop].n}</div>
+        <div class="c-meta">Gap of ${fmt(c.gap)} ahead · about ${c.helped} people waiting in it · ETA ${c.eta} min</div>
+        <div class="c-actions"><button class="btn primary" id="bApprove" type="button">Approve and send</button><button class="btn" id="bDecline" type="button">Not now</button></div></div>`;
+      $('bApprove').onclick = approve; $('bDecline').onclick = decline;
+    } else if (S.pending.length) {
+      box.innerHTML = S.pending.map(p => `<div class="empty">${p.id} driving to ${STOPS[p.stop].n}, arrives in ${fmt(p.at - S.t)}</div>`).join('');
+    } else box.innerHTML = '<div class="empty">No big gap predicted. Ritm checks every 20 seconds.</div>';
+    $('hubs').innerHTML = S.hubs.map(h => `<div class="hub">${h.name}<b>${h.n}</b>on standby</div>`).join('');
+  }
+  let lastCardKey = '';
+  function renderGaps() {
+    const g = gaps(); const total = g.reduce((a, b) => a + b.time, 0) || 1;
+    $('gapStrip').innerHTML = g.map(x => {
+      const r = x.time / HPLAN;
+      const col = r < 0.4 ? 'var(--bad)' : r > 1.5 ? 'var(--gap)' : 'var(--hold)';
+      const label = r < 0.4 ? 'tight ' : r > 1.5 ? 'long ' : '';
+      return `<div style="flex:${(x.time / total).toFixed(4)};background:${col}" title="${fmt(x.time)}">${x.time / total > 0.06 ? label + fmt(x.time) : ''}</div>`;
+    }).join('');
+    $('plannedStrip').innerHTML = Array.from({ length: NPLAN }, () => '<span></span>').join('');
+  }
+  function renderForecast() {
+    const rows = STOPS.map((s, i) => {
+      let tn = Infinity;
+      for (const b of S.buses) { if (b.atStop === i) { tn = 0; break; } const d = fwd(b.pos, SPOS[i]); tn = Math.min(tn, d / (VFREE * 0.8)); }
+      for (const p of S.pending) if (p.stop === i) tn = Math.min(tn, p.at - S.t);
+      const pred = Math.round(S.waiting[i] + rate(i) * Math.min(tn, 1800));
+      return { i, s, pred, tn };
+    }).sort((a, b) => b.pred - a.pred).slice(0, 5);
+    const max = Math.max(60, ...rows.map(r => r.pred));
+    $('fc').innerHTML = rows.map(r => `<div class="fc-row"><span class="nm">${r.s.n}</span><span class="chip">${PLACE[r.s.p]}</span><span class="num">${r.pred}</span>
+      <div class="bar"><i style="width:${(r.pred / max * 100).toFixed(1)}%;background:${r.pred >= 40 ? 'var(--bad)' : r.pred >= 22 ? 'var(--slow)' : 'var(--hold)'}"></i></div></div>`).join('');
+  }
+  function renderLog() { $('log').innerHTML = S.log.map(l => `<li><time>${l.t}</time><span>${l.msg}</span></li>`).join(''); }
+  function renderButtons() {
+    $('modeOff').setAttribute('aria-pressed', String(!S.ritm)); $('modeOn').setAttribute('aria-pressed', String(S.ritm));
+    $('btnJam').setAttribute('aria-pressed', String(S.jam));
+    $('btnJam').textContent = S.jam ? 'Clear the jam' : 'Traffic jam: Nərimanov–Xətai';
+    $('btnRemove').disabled = S.buses.filter(b => !b.reserve).length <= 6;
+    $('btnRush').disabled = S.t < S.rushUntil;
+    $('btnRush').textContent = S.t < S.rushUntil ? 'University rush on' : 'University rush';
+  }
+  function render(full) {
+    drawMap(); renderTablet();
+    const key = S.card ? S.card.id : (S.pending.length ? 'p' + S.pending.length + Math.floor(S.t / 5) : 'none') + S.ritm + S.hubs.map(h => h.n).join();
+    if (full || key !== lastCardKey) { renderReserve(); lastCardKey = key; }
+    const now = performance.now();
+    if (full || now - lastPanels > 300) { lastPanels = now; renderKpis(); renderChart(); renderGaps(); renderForecast(); renderLog(); renderButtons(); }
+  }
+  let lastPanels = 0;
+
+  // ---------- controls ----------
+  $('modeOff').onclick = () => { if (!S.ritm) return; S.ritm = false; S.card = null; addLog('Ritm switched off'); render(true); };
+  $('modeOn').onclick = () => { if (S.ritm) return; S.ritm = true; S.cardCool = S.t + 120; addLog('Ritm switched on'); render(true); };
+  $('btnRemove').onclick = () => {
+    const regular = S.buses.filter(b => !b.reserve); if (regular.length <= 6) return;
+    const b = regular[Math.floor(rng() * regular.length)];
+    S.buses = S.buses.filter(x => x !== b);
+    addLog(`Bus ${b.id} taken out of service (breakdown)`);
+    rebuildBusSelect(); render(true);
+  };
+  $('btnJam').onclick = () => { S.jam = !S.jam; addLog(S.jam ? 'Traffic jam starts between Nərimanov and Xətai' : 'Traffic jam clears'); render(true); };
+  $('btnRush').onclick = () => { S.rushUntil = S.t + 900; addLog('University rush at BDU and Elmlər Akademiyası (15 min)'); render(true); };
+  $('busSel').onchange = e => { S.sel = e.target.value; renderTablet(); drawMap(); };
+  let paused = false;
+  $('btnPause').onclick = () => { paused = !paused; $('btnPause').textContent = paused ? 'Play' : 'Pause'; };
+  $('btnReset').onclick = () => { const keep = S.ritm; init(); S.ritm = false; warmup(); S.ritm = keep; if (keep) S.cardCool = S.t + 120; buildMap(); rebuildBusSelect(); render(true); };
+
+  // ---------- loop ----------
+  function warmup() { for (let k = 0; k < 2700; k++) step(); }
+  init(); warmup(); buildMap(); rebuildBusSelect(); render(true);
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) { paused = true; $('btnPause').textContent = 'Play'; }
+  let acc = 0, last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.25, (now - last) / 1000); last = now;
+    if (!paused) {
+      acc += dt * Number($('speed').value);
+      let n = 0; while (acc >= 1 && n < 200) { step(); acc -= 1; n++; }
+      if (n) render(false);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
