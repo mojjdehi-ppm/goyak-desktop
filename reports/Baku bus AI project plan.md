@@ -6,7 +6,7 @@ Hackathon: "İnsanyönümlü şəhərlər" (Youth Foundation + National AI Centr
 
 ## 1. What we are building (one paragraph)
 
-A software layer that sits on top of AYNA's existing bus GPS/IoT data and does three things: (1) **Headway Guardian** — detects buses starting to bunch and tells dispatchers/drivers exactly how long to hold at the next control stop so intervals stay even; (2) **Crowd Forecast** — predicts, 15–60 minutes ahead, which stops and corridors will overflow, using tap-in history, metro exits, time/weather/events and (later) NİİM street cameras; (3) **Reserve Dispatch** — manages a standby pool of ~20 buses/minibuses parked at 3–4 hubs and recommends when and where to insert one to fill a predicted gap or crowd. All three share one data pipeline, one map, one set of KPIs. The AI is honest and defensible: gradient-boosted prediction models + a proven headway-control rule with safety guardrails + an optimisation solver for reserve assignment. No reinforcement learning as the live controller.
+A software layer that sits on top of AYNA's existing bus GPS/IoT data and does three things: (1) **Headway Guardian** — detects buses starting to bunch and tells dispatchers/drivers exactly how long to hold at the next control stop so intervals stay even; (2) **Crowd Forecast** — predicts, 15–60 minutes ahead, which stops and corridors will overflow, using tap-in history, metro exits, the location of schools, universities, shopping centres and offices around each stop, time/weather/events — and uses the buses' own GPS delays as a live traffic sensor (where buses slow down is where traffic is); (3) **Reserve Dispatch** — manages a standby pool of ~20 buses/minibuses parked at 3–4 hubs and recommends when and where to insert one to fill a predicted gap or crowd. All three share one data pipeline, one map, one set of KPIs. The AI is honest and defensible: gradient-boosted prediction models + a proven headway-control rule with safety guardrails + an optimisation solver for reserve assignment. No reinforcement learning as the live controller.
 
 **Who pays:** AYNA. From Sept 2026 gross-cost contracts (routes 130, 205, 211, 500, 503) make interval adherence a financially penalised KPI; AYNA announced a Data Warehouse (Jul 2026) and tendered a ~3M AZN mini-ITS with an AI agent (Oct 2026). We are building the module they are shopping for.
 
@@ -18,15 +18,18 @@ A software layer that sits on top of AYNA's existing bus GPS/IoT data and does t
 - Input: vehicle positions every 10–30 s per route.
 - Geofence each stop → stop arrival/departure events → live headways.
 - KPIs per route: headway coefficient of variation (CV), Excess Wait Time (EWT = actual − scheduled average wait), % bunched (headway < 25% of planned), % big gaps (> 150%).
-- Controller: *two-way-looking even-headway holding* (look at the bus ahead and the bus behind; hold = ½·(gap behind − gap ahead), clipped to 0–90 s, never hold a bus that is already late beyond threshold, never hold at stops marked no-hold). This is the rule that produced −26% excess wait at WMATA (Washington) and −9…−20% wait at Chicago CTA even with trips cancelled and only a third of drivers complying.
+- Controller: *two-way-looking even-headway holding* (look at the bus ahead and the bus behind; hold = ½·(gap behind − gap ahead), clipped to 0–90 s, never hold a bus that is already late beyond threshold).
+- **What "hold" means — and does not mean.** The bus stops at every stop as normal and lets everyone board and alight, however long that takes (elderly passengers, wheelchairs, strollers). Only *after* boarding is finished, the tablet may show "earliest departure in 40 s". It is a *minimum departure time*, never a command to leave, never a command to skip a stop, and never a command to shorten boarding. If boarding already took longer than the suggested hold, the hold is simply zero. **Stop-skipping and short-turning are excluded from this project — they are against the rules and not needed.** This is the rule that produced −26% excess wait at WMATA (Washington) and −9…−20% wait at Chicago CTA even with trips cancelled and only a third of drivers complying.
 - Terminal dispatch regularity: even departures from terminals (highest-leverage point; downstream irregularity ≈ 0.69× dispatch irregularity in Bogotá data).
 - Output: one-line instruction on a driver tablet/phone ("Hold 40 s at stop 12") and a dispatcher console.
 
 ### 2.2 Crowd Forecast
 - Target: predicted boardings per stop per 15-min slot, and predicted on-board load per trip.
-- Features: historical BakuBus daily boardings (opendata.az), metro station entries (opendata.az / metro.gov.az), hour, weekday, holiday, weather, Yandex/GoMap traffic index, known events (stadium, concerts, exam days), school calendar.
+- Features: historical BakuBus daily boardings (opendata.az), metro station entries (opendata.az / metro.gov.az), hour, weekday, holiday, weather, known events (stadium, concerts, exam days), school/university calendar.
+- **Place features (what is around each stop):** count and type of points of interest within 300–500 m — schools, universities, shopping centres, markets, hospitals, offices, metro entrances — from OpenStreetMap / GoMap. A stop next to a university behaves differently at 08:30 and 17:30 than a stop next to a shopping mall; the model learns these profiles per stop and per hour.
+- **Traffic from the buses themselves:** every bus is a moving traffic sensor. Link travel time vs the free-flow time for that link = a live congestion index per street, updated every minute, with no cameras or external APIs. Aggregate it into a congestion map; feed it to the arrival-time predictor and the crowd model (a jammed corridor → later buses → more people accumulating at downstream stops). Yandex/GoMap traffic is an optional cross-check only.
 - Model: LightGBM / CatBoost regressor (fast to train, explainable with SHAP). Baseline to beat: "same slot last week".
-- Phase 2 feature: people counts at stops from cameras (see §6). Demo: one camera (laptop webcam or phone) pointed at a mock queue, YOLOv8 counting people at the "stop", feeding the forecast live. Counts only, frames deleted immediately (Vienna precedent: frames deleted within 50 ms).
+- No cameras anywhere in this project (not in the demo, not in the roadmap). Demand is estimated from tap-ins, metro exits, place features and bus delays.
 
 ### 2.3 Reserve Dispatch (the "20 emergency buses")
 - Standby pool: ~20 vehicles (mix of 12 m buses and 8 m minibuses) at 3–4 hubs (e.g., 28 May/Nizami area, Koroğlu, Əhmədli, Memar Əcəmi — to be validated against route map).
@@ -81,7 +84,8 @@ Dates for Stage I and Demo Day are not yet published; plan assumes ~2 weeks to S
 - [ ] OR-Tools assignment: trigger → candidate insertions → cost (deadhead + driver time − passenger-minutes saved) → recommendation.
 - [ ] Crowd forecast v2 with weather/events/metro features; report MAE vs baseline; SHAP plot for explainability.
 - [ ] Arrival-time predictor (LightGBM on link times, hour, weekday, traffic index) — show error vs schedule-based ETA (AYNA's app currently shows schedule-based times).
-- [ ] Camera module: YOLOv8n on laptop webcam → people count every 5 s → feeds a stop's "live demand" in the dashboard. Frames never stored.
+- [ ] Congestion map from bus GPS: per-link travel-time index vs free-flow, rendered on the map; validate against a few Yandex screenshots.
+- [ ] POI feature table per stop from OpenStreetMap (schools, universities, malls, hospitals, offices, metro).
 
 ### Week 4 (30 Nov–6 Dec): Product UI + integration
 - [ ] Dispatcher console (web): live map (MapLibre + route shapes), per-route KPI tiles, bunching alerts, reserve recommendation cards with approve/decline, scenario switch (replay real day vs simulate with control).
@@ -102,7 +106,7 @@ Dates for Stage I and Demo Day are not yet published; plan assumes ~2 weeks to S
 1. **(0:00) The problem, with our own data.** Real time–space diagram of route 49 on a weekday evening: three buses arrive within 2 minutes after a 25-minute gap. "This is not a schedule problem. It is a control problem."
 2. **(1:00) Headway Guardian live.** Replay the same evening with the controller on: gaps even out; KPI tiles show CV 0.7 → 0.3, EWT −X min. Show the driver tablet instruction appearing.
 3. **(2:30) Stress test.** Click "remove a bus" (fleet shortage) and "inject traffic jam": the line re-equalises itself within 2 cycles.
-4. **(3:30) Crowd Forecast + camera.** Forecast heat map for the next 30 minutes; point the webcam at the audience: count rises, the stop turns red.
+4. **(3:30) Crowd Forecast + traffic from buses.** Congestion map built only from bus GPS lights up on Nizami/Babek corridor; forecast heat map shows the university stops turning red at 17:30; explain the place features (schools, universities, malls) behind the prediction.
 5. **(4:15) Reserve Dispatch.** The system proposes sending reserve M-07 from Koroğlu hub, with ETA and passengers helped; dispatcher approves in one tap; map shows the insertion closing the gap.
 6. **(5:15) Business and path.** AYNA already pays penalties/incentives on interval KPIs under gross-cost contracts; AYNA's own 3M AZN ITS tender includes an AI agent; our pilot: 1 route, 8 weeks, zero hardware. Ask: a data-sharing agreement and a pilot route.
 
@@ -113,10 +117,10 @@ Dates for Stage I and Demo Day are not yet published; plan assumes ~2 weeks to S
 | Need | Source now (no AYNA permission) | Source with AYNA | Notes |
 |---|---|---|---|
 | Routes, stops, shapes | AYNA public map API; scraped GTFS exports on GitHub/Zenodo | Official GTFS | Unlicensed — say "publicly accessible, pilot would use official feed" |
-| Live vehicle positions | Poll AYNA MaaS app endpoints (Dec 2025 app shows live positions) | AVL feed (GTFS-RT or direct) | Start polling in Week 0; store everything |
+| Live vehicle positions | Poll AYNA MaaS app endpoints (Dec 2025 app shows live positions) — confirmed easy to obtain | AVL feed (GTFS-RT or direct) | Start polling in Week 0; store everything; this is the primary data source |
 | Boardings/demand | BakuBus daily boardings, metro entries (opendata.az) | BakıKart tap-ins per stop per minute | Tap data is the big unlock for crowd prediction |
-| Traffic | Yandex traffic layer, GoMap traffic tiles | NİİM feeds | Use as a feature, not ground truth |
-| Crowds at stops | Own webcam + YOLOv8 for demo | NİİM street cameras (Interior Ministry) | Cameras are NOT AYNA's — Phase 2 integration; demand counts only, no faces |
+| Traffic | Derived from bus GPS link travel times (own congestion index) | same, plus NİİM feeds if offered | Yandex/GoMap only as a cross-check |
+| Places around stops | OpenStreetMap / GoMap POIs: schools, universities, malls, hospitals, offices, metro | AYNA stop metadata | Static table, built once |
 | Reserve fleet | Assumed 20 vehicles, 4 hubs | Real depot locations, shift rules | State assumptions clearly |
 
 Fallback if live polling fails: synthetic AVL generated by the simulator calibrated to published Baku bus speeds (18→22 km/h) and headways — label it clearly as synthetic.
@@ -126,7 +130,7 @@ Fallback if live polling fails: synthetic AVL generated by the simulator calibra
 ## 7. Architecture and stack
 
 ```
-[AYNA positions poll] [opendata.az] [Yandex/GoMap traffic] [webcam → YOLOv8 counts]
+[AYNA MaaS positions poll] [opendata.az boardings/metro] [OSM/GoMap places]  [bus-GPS congestion index]
             │                │                │                      │
             └────────► Ingestion (Python, FastAPI jobs) ◄────────────┘
                                    │
@@ -144,7 +148,7 @@ Fallback if live polling fails: synthetic AVL generated by the simulator calibra
                          Optional: LLM query layer over KPIs (Claude API, tool calls)
 ```
 
-- Python 3.11, FastAPI, pandas, LightGBM, SimPy, OR-Tools, Ultralytics YOLOv8n, OpenCV.
+- Python 3.11, FastAPI, pandas, LightGBM, SimPy, OR-Tools, OSMnx (places around stops).
 - React + Vite + TypeScript, MapLibre GL JS, Recharts for KPI charts.
 - Docker Compose for one-command start; GitHub Actions for tests.
 
@@ -179,6 +183,7 @@ Fallback if live polling fails: synthetic AVL generated by the simulator calibra
 - Access to AYNA GPS/fare data or NİİM cameras that we don't have.
 - That software replaces bus lanes or new buses.
 - Guaranteed driver compliance — show results *at* realistic compliance (35–60%).
+- Anything involving cameras, stop-skipping, short-turning or cutting boarding time short.
 
 ## 11. Risks and mitigations
 
@@ -189,11 +194,12 @@ Fallback if live polling fails: synthetic AVL generated by the simulator calibra
 | Scope creep (3 modules) | Headway Guardian is the must-have; Forecast and Reserve are demo-quality; cut Reserve UI before cutting Guardian |
 | Judges ask "why not just more buses?" | Show the remove-a-bus stress test: control is what makes the fleet you have usable |
 | Demo Wi-Fi fails | Everything runs locally from Docker; pre-recorded video backup |
-| Privacy questions on cameras | Counts only, on-device, no frames stored; cite Vienna 50 ms deletion precedent |
+| Judges ask how we see traffic without cameras | Show the bus-GPS congestion map: 2,500 buses are already 2,500 traffic sensors |
+| Judges ask about drivers being forced to leave or skip stops | Show the tablet: only an *earliest departure time* after boarding is complete; all stops always served |
 
 ## 12. First five tasks (do today)
 1. Register for the hackathon.
 2. Start the position-polling script for routes 49, 52/96 and one gross-cost route; let it run.
-3. Pull route/stop geometry and opendata.az boardings.
+3. Pull route/stop geometry, opendata.az boardings, and OpenStreetMap places (schools, universities, malls) around each stop.
 4. Create repo with the folder layout: `ingest/`, `kpi/`, `sim/`, `ml/`, `dispatch/`, `web/`, `docs/`.
 5. Draft the 1-page project description in Azerbaijani.
