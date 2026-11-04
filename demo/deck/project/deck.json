@@ -1,0 +1,18 @@
+{
+  "v": 4,
+  "createdOnFiles": {"v": 1, "at": "2026-11-01T20:45:00Z"},
+  "lists": "css",
+  "title": "Ritm — AI that keeps Baku’s buses in rhythm",
+  "cover": "cover",
+  "order": ["cover", "problem", "why", "who", "exists", "solution", "guardian", "forecast", "reserve", "evidence", "results", "ai", "data", "whynow", "pilot", "close"],
+  "sections": {
+    "s1": {"description": "The problem: Baku’s buses arrive in bunches and people wait.", "start": "cover"},
+    "s2": {"description": "What Baku already has, and the three Ritm modules.", "start": "exists"},
+    "s3": {"description": "Field proof, honest simulation results, data, timing and the pilot.", "start": "evidence"}
+  },
+  "faces": {
+    "space-grotesk": {"family": "Space Grotesk", "href": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap"},
+    "dm-sans": {"family": "DM Sans", "href": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"}
+  },
+  "designSystems": []
+}
