@@ -39,7 +39,8 @@ header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content:
 .brand h1 { font-family: var(--font-display); font-weight: 800; font-size: 30px; margin: 0; line-height: 1.1; text-wrap: balance; }
 .brand p { margin: 0; color: var(--muted); font-size: 14px; }
 .sim-note { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); font-weight: 600; }
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; max-width: 100%; }
+.toolbar select { max-width: 100%; min-width: 0; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--panel); }
 .seg button { border: 0; background: transparent; color: var(--muted); font: 600 14px var(--font-body); padding: 7px 16px; border-radius: 999px; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
@@ -142,6 +143,11 @@ select { font: 500 14px var(--font-body); color: var(--ink); background: var(--p
 .bus-c { stroke: var(--panel); cursor: pointer; }
 .bus-c.move { fill: var(--accent); } .bus-c.dwell { fill: var(--ink); } .bus-c.hold { fill: var(--hold); }
 .bus-c.res { stroke: var(--gap); }
+.bus-c.untracked { opacity: .45; stroke-dasharray: 3 2; stroke: var(--ink); }
+#claimTbl th, #claimTbl td { text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+#claimTbl th:first-child, #claimTbl td:first-child { text-align: left; }
+#claimTbl th { font-weight: 600; color: var(--muted); font-size: 12px; }
+#claimTbl tr.hl td { background: color-mix(in srgb, var(--hold) 10%, transparent); font-weight: 600; }
 .bus-sel { fill: none; stroke: var(--ink); }
 .bus-t { font-family: var(--font-data); font-weight: 700; fill: var(--panel); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 .ch-grid { stroke: var(--line); } .ch-target { stroke: var(--free); stroke-dasharray: 4 3; }
@@ -154,12 +160,13 @@ select { font: 500 14px var(--font-body); color: var(--ink); background: var(--p
     <div class="brand">
       <span class="sim-note">Real route and stops · simulated buses and passengers</span>
       <div class="line"><span class="badge61">61</span><h1>Azadlıq pr. – 9-cu mkr</h1></div>
-      <p>Ritm headway, crowd and reserve-bus control on a real Baku bus line</p>
+      <p>Ritm headway control, crowding index and add-a-bus advice on a real Baku bus line</p>
       <p>AYNA: carrier Xaliq Faiqoğlu MMC · 18.6 km · 31 min · 0.60 AZN by card · 55 stops (checked on map.ayna.gov.az, 2 Nov 2026)</p>
     </div>
     <div class="toolbar" role="group" aria-label="Simulation controls">
       <div class="seg" role="group" aria-label="Ritm control">
-        <button id="modeOff" aria-pressed="true" type="button">Ritm off</button>
+        <button id="modeOff" aria-pressed="true" type="button">No control</button>
+        <button id="modeTerm" aria-pressed="false" type="button">Today: terminal dispatch</button>
         <button id="modeOn" class="on" aria-pressed="false" type="button">Ritm on</button>
       </div>
       <button class="btn" id="btnRemove" type="button">Take a bus out of service</button>
@@ -169,6 +176,11 @@ select { font: 500 14px var(--font-body); color: var(--ink); background: var(--p
         <option value="10">10× speed</option>
         <option value="30" selected>30× speed</option>
         <option value="60">60× speed</option>
+      </select>
+      <select id="real" aria-label="Realism scenario">
+        <option value="ideal">Ideal: all drivers comply, live GPS</option>
+        <option value="cta" selected>Chicago-like: 50% comply, 60 s GPS, 1 bus silent</option>
+        <option value="pess">Pessimistic: few comply, 60 s GPS, 1 bus silent</option>
       </select>
       <button class="btn" id="btnPause" type="button">Pause</button>
       <button class="btn" id="btnReset" type="button">Reset</button>
@@ -188,12 +200,13 @@ select { font: 500 14px var(--font-body); color: var(--ink); background: var(--p
         <span><i class="dot" style="background:var(--ink)"></i>Boarding</span>
         <span><i class="dot" style="background:var(--hold)"></i>Ritm hold</span>
         <span><i class="dot" style="background:transparent;border:3px solid var(--gap)"></i>Reserve bus</span>
+        <span><i class="dot" style="background:var(--accent);opacity:.45;border:2px dashed var(--ink)"></i>Not reporting GPS</span>
         <span><i class="sw" style="background:var(--free)"></i>Free flow</span>
         <span><i class="sw" style="background:var(--slow)"></i>Slow</span>
         <span><i class="sw" style="background:var(--jam)"></i>Jam</span>
         <span>Line colours come from bus GPS speeds. Numbers are people waiting. Drag to move, use + and − to zoom.</span>
       </div>
-      <div class="attr">Streets, metro and places: © OpenStreetMap contributors (ODbL). Route 61 stops and shape: AYNA public map (map.ayna.gov.az), via the route_efficiency dataset (MIT); stop list re-checked against AYNA on 2 Nov 2026. Timetable, speeds and passengers are simulated.</div>
+      <div class="attr">Streets, metro and places: © OpenStreetMap contributors (ODbL). Route 61 stops and shape: AYNA public map (map.ayna.gov.az), via the route_efficiency dataset (MIT); stop list re-checked against AYNA on 2 Nov 2026. Timetable, speeds and passengers are simulated. Ritm runs on a separate tablet beside the existing Kentkart on-board unit; no integration with that unit is claimed.</div>
     </section>
 
     <div class="col">
@@ -204,6 +217,8 @@ select { font: 500 14px var(--font-body); color: var(--ink); background: var(--p
           <div class="kpi"><div class="lab">Average wait at a stop</div><div class="val" id="kWait">—</div><div class="sub" id="kWaitX">—</div></div>
           <div class="kpi"><div class="lab">Buses arriving bunched</div><div class="val" id="kBun">—</div><div class="sub">gap under 25% of plan</div></div>
           <div class="kpi"><div class="lab">Long gaps</div><div class="val" id="kGap">—</div><div class="sub">gap over 150% of plan</div></div>
+          <div class="kpi"><div class="lab">Hold advice followed</div><div class="val" id="kComp">—</div><div class="sub" id="kCompS">by drivers, this scenario</div></div>
+          <div class="kpi"><div class="lab">Buses reporting GPS</div><div class="val" id="kTrk">—</div><div class="sub">seen by the controller</div></div>
         </div>
         <div class="chart">
           <svg id="cvChart" viewBox="0 0 320 90" preserveAspectRatio="none" role="img" aria-label="Interval irregularity over time; shaded periods are Ritm on"></svg>
@@ -223,10 +238,25 @@ select { font: 500 14px var(--font-body); color: var(--ink); background: var(--p
         </div>
       </section>
 
-      <section class="panel" aria-label="Reserve dispatch">
-        <h2>Reserve dispatch <small>dispatcher decides</small></h2>
+      <section class="panel" aria-label="Add-a-bus advisor">
+        <h2>Add-a-bus advisor <small>dispatcher decides · scenario analysis</small></h2>
         <div id="resBox"></div>
         <div class="hubs" id="hubs"></div>
+        <div class="small">Uses the reserve buses carriers already keep at terminals (count assumed). Options ranked by drive time against people helped.</div>
+      </section>
+
+      <section class="panel" aria-label="Honest ranges">
+        <h2>What we claim <small>offline runs, 6 simulated hours, this line</small></h2>
+        <div style="overflow-x:auto"><table id="claimTbl" style="width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums">
+          <tr><th>Scenario</th><th>Advice followed</th><th>CV</th><th>Avg wait</th><th>Bunched</th><th>Long gaps</th></tr>
+          <tr><td>No control at all</td><td>—</td><td>2.3</td><td>26 min</td><td>81%</td><td>18%</td></tr>
+          <tr><td>Today: terminal dispatch only</td><td>—</td><td>1.9</td><td>21 min</td><td>69%</td><td>21%</td></tr>
+          <tr><td>Ritm · ideal (all comply, live GPS)</td><td>100%</td><td>0.08</td><td>5 min</td><td>0%</td><td>0%</td></tr>
+          <tr class="hl"><td>Ritm · Chicago-like (50%, 60 s GPS, 1 bus silent)</td><td>49%</td><td>0.56</td><td>7 min</td><td>7%</td><td>22%</td></tr>
+          <tr><td>Ritm · pessimistic (a few drivers comply)</td><td>22%</td><td>1.7</td><td>18 min</td><td>63%</td><td>25%</td></tr>
+        </table></div>
+        <div class="small">Averages of three 45-minute windows between 21:00 and 00:00. The baseline reproduces the 15–22-minute gaps BakuBus measured on routes 2 and 7A in Oct 2026. Simulated; a real pilot will gain less than the highlighted row.</div>
+        <div class="small">Field results elsewhere: WMATA −26% excess wait; Chicago CTA −6 to −9% average wait at 35–57% driver compliance. We claim 5–15% on a first pilot route, not the ideal column.</div>
       </section>
     </div>
   </div>
@@ -238,10 +268,10 @@ select { font: 500 14px var(--font-body); color: var(--ink); background: var(--p
       <div class="planned" id="plannedStrip"></div>
       <div class="small" id="gapNote">Top: real gaps around the round trip. Bottom: what the timetable plans.</div>
     </section>
-    <section class="panel" aria-label="Crowd forecast">
-      <h2>Crowd forecast <small>people waiting when the next bus arrives</small></h2>
+    <section class="panel" aria-label="Crowding index">
+      <h2>Crowding index <small>stops most at risk before the next bus</small></h2>
       <div class="fc" id="fc"></div>
-      <div class="small">Place types come from OpenStreetMap within 400 m of each stop. Demo model: rate by place type and time of day × time to the next bus. The product uses LightGBM on AYNA passenger data.</div>
+      <div class="small">An index, not a forecast: headway × arrival profile by place type (OpenStreetMap, 400 m) and hour. It becomes a forecast when AYNA shares stop-level BakıKart tap counts; until then we quote no accuracy figure.</div>
     </section>
     <section class="panel" aria-label="Event log">
       <h2>Events</h2>
@@ -302,23 +332,44 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
   let seed = 11;
   function rng() { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
 
+  // ---------- realism scenarios ----------
+  const PRESETS = {
+    ideal: { comp: 1.0, conc: false, gps: 1, untracked: 0, label: 'Ideal' },
+    cta: { comp: 0.5, conc: false, gps: 60, untracked: 0.10, label: 'Chicago-like' },
+    pess: { comp: 0.35, conc: true, gps: 60, untracked: 0.15, label: 'Pessimistic' },
+  };
+  let preset = 'cta';
+  function applyPreset() {
+    const p = PRESETS[preset]; S.gps = p.gps;
+    const reg = S.buses.filter(b => !b.reserve);
+    const nUn = Math.round(p.untracked * reg.length);
+    reg.forEach((b, k) => {
+      b.tracked = k >= nUn;
+      b.comp = p.conc ? (k % 3 === 0 ? 1 : 0.03) : p.comp; // concentrated: a third of drivers always comply, the rest almost never
+      if (b.tracked) { b.rep.pos = b.pos; b.rep.state = b.state; b.rep.timer = b.timer; b.rep.t = S.t; }
+    });
+    for (const b of S.buses) if (b.reserve) { b.tracked = true; b.comp = 1; }
+  }
+
   // ---------- state ----------
   let S;
   function init() {
     seed = 11;
-    S = { t: 0, ritm: false, jam: false, rushUntil: -1, buses: [], waiting: new Array(NS).fill(0), lastArr: new Array(NS).fill(null), lastDep: new Array(NS).fill(null),
+    S = { t: 0, ritm: false, term: false, jam: false, rushUntil: -1, buses: [], waiting: new Array(NS).fill(0), lastArr: new Array(NS).fill(null), lastDep: new Array(NS).fill(null),
       headways: [], cvHist: [], segBase: STOPS.map(() => 0.62 + 0.3 * rng()), cong: STOPS.map(() => 0.8),
       hubs: [{ stop: TERM[0], name: 'Mahnı Teatrı terminal', n: 3 }, { stop: TERM[1], name: '9-cu mkr terminal', n: 3 }],
-      card: null, cardCool: 0, pending: [], resCount: 0, log: [], sel: null, nextId: 1 };
+      card: null, cardCool: 0, pending: [], resCount: 0, log: [], sel: null, nextId: 1, gps: 60, stats: { issued: 0, followed: 0, ignored: 0 } };
     const sp = L / NPLAN;
     for (let k = 0; k < NPLAN; k++) S.buses.push(newBus(String(S.nextId++), ((k * sp + (rng() - 0.5) * 0.3 * sp) + L) % L, 90, false));
     for (let i = 0; i < NS; i++) S.waiting[i] = Math.round(2 + rng() * 4);
     S.sel = S.buses[0].id;
+    applyPreset();
     addLog(`Line 61 starts with ${NPLAN} buses, planned interval ${fmt(HPLAN)}`);
   }
   function newBus(id, pos, cap, reserve) {
     return { id, pos, cap, reserve, load: Math.round(cap * 0.3), state: 'move', timer: 0, atStop: -1, nextStop: nextStopFrom(pos),
-      noise: 0.85 + 0.3 * rng(), segMove: 0, fresh: true, extra: 0, slow: false, hold: 0, gapAhead: null, gapBehind: null, lastStop: -1 };
+      noise: 0.85 + 0.3 * rng(), segMove: 0, fresh: true, extra: 0, slow: false, hold: 0, gapAhead: null, gapBehind: null, lastStop: -1,
+      tracked: true, comp: 1, rep: { pos, state: 'move', timer: 0, t: 0 }, phase: Math.floor(rng() * 60), advice: '', ignored: -1e9 };
   }
   function nextStopFrom(pos) { for (let i = 0; i < NS; i++) if (SPOS[i] > pos + 0.01) return i; return 0; }
   const fwd = (a, b) => ((b - a) % L + L) % L;
@@ -350,6 +401,7 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
         if (b.timer <= 0) { if (b.state === 'dwell') afterBoarding(b); else depart(b); }
       }
     }
+    for (const b of S.buses) if (b.tracked && (S.t + b.phase) % S.gps === 0) { b.rep.pos = b.pos; b.rep.state = b.state; b.rep.timer = b.timer; b.rep.t = S.t; }
     for (let k = S.pending.length - 1; k >= 0; k--) {
       const p = S.pending[k];
       if (S.t >= p.at) {
@@ -378,20 +430,40 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
     b.timer = Math.round(6 + 1.2 * alight + 2.2 * board + b.extra);
     if (isTerm) b.timer = Math.max(b.timer, S.ritm ? 150 : LAYOVER);
   }
-  function follower(b) { let best = null, bd = Infinity; for (const x of S.buses) { if (x === b) continue; let d = fwd(x.pos, b.pos); if (d < 0.5) d = 0; if (d < bd) { bd = d; best = x; } } return best; }
+  // The controller only sees buses that report GPS, at their last reported position.
+  function follower(b) { let best = null, bd = Infinity; for (const x of S.buses) { if (x === b || !x.tracked) continue; let d = fwd(x.rep.pos, b.pos); if (d < 0.5) d = 0; if (d < bd) { bd = d; best = x; } } return best; }
+  function realFollower(b) { let best = null, bd = Infinity; for (const x of S.buses) { if (x === b) continue; let d = fwd(x.pos, b.pos); if (d < 0.5) d = 0; if (d < bd) { bd = d; best = x; } } return best; }
   function estTime(f, stop) {
-    const dist = fwd(f.pos, SPOS[stop]); let between = 0, term = 0;
-    for (let j = 0; j < NS; j++) { const dj = fwd(f.pos, SPOS[j]); if (dj > 0.5 && dj < dist - 0.5) { between++; if (STOPS[j].terminal) term++; } }
-    return dist / (VFREE * 0.75) + between * 20 + term * LAYOVER + (f.state !== 'move' ? Math.max(0, f.timer) : 0);
+    const fp = f.rep.pos, fs = f.rep.state, ft = f.rep.timer;
+    const dist = fwd(fp, SPOS[stop]); let between = 0, term = 0;
+    for (let j = 0; j < NS; j++) { const dj = fwd(fp, SPOS[j]); if (dj > 0.5 && dj < dist - 0.5) { between++; if (STOPS[j].terminal) term++; } }
+    return dist / (VFREE * 0.75) + between * 20 + term * LAYOVER + (fs !== 'move' ? Math.max(0, ft) : 0);
   }
   function afterBoarding(b) {
     const i = b.atStop;
     b.gapAhead = S.lastDep[i] == null ? HPLAN : S.t - S.lastDep[i];
     const f = follower(b); b.gapBehind = f ? estTime(f, i) : null;
-    if (!S.ritm || !f) { depart(b); return; }
+    const rf = realFollower(b);
+    b.advice = '';
+    if (S.term && !S.ritm) {
+      // Today's practice: a dispatcher releases buses from the terminal on the planned interval; nothing en route.
+      if (STOPS[i].terminal) { const h = Math.min(300, Math.max(0, HPLAN - b.gapAhead)); if (h >= 3) { b.state = 'hold'; b.timer = Math.round(h); b.hold = Math.round(h); b.advice = 'sched'; return; } }
+      depart(b); return;
+    }
+    if (!S.ritm || !b.tracked || !rf || !f) { depart(b); return; }
     const cap = STOPS[i].terminal ? 300 : 75;
-    const hold = Math.max(0, Math.min(cap, 0.5 * (b.gapBehind - b.gapAhead) - b.extra));
-    if (hold >= 3) { b.state = 'hold'; b.timer = Math.round(hold); b.hold = Math.round(hold); } else depart(b);
+    let hold;
+    if (!rf.tracked) {
+      // The bus behind is not reporting: never hold on a guess. Fall back to restoring the planned gap ahead, capped at 60 s.
+      hold = Math.min(60, Math.max(0, HPLAN - b.gapAhead - b.extra)); b.advice = 'fallback';
+    } else {
+      hold = Math.max(0, Math.min(cap, 0.5 * (b.gapBehind - b.gapAhead) - b.extra)); b.advice = 'twoway';
+    }
+    if (hold >= 3) {
+      S.stats.issued++;
+      if (rng() < b.comp) { S.stats.followed++; b.state = 'hold'; b.timer = Math.round(hold); b.hold = Math.round(hold); }
+      else { S.stats.ignored++; b.ignored = S.t; depart(b); }
+    } else depart(b);
   }
   function depart(b) { S.lastDep[b.atStop] = S.t; b.lastStop = b.atStop; b.state = 'move'; b.nextStop = (b.atStop + 1) % NS; b.atStop = -1; b.noise = 0.85 + 0.3 * rng(); b.segMove = 0; b.hold = 0; }
 
@@ -406,32 +478,36 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
     if (cv < 0.21) return ['A · very regular', 'good']; if (cv < 0.31) return ['B · regular', 'good']; if (cv < 0.40) return ['C · fair', 'warn'];
     if (cv < 0.53) return ['D · irregular', 'warn']; if (cv < 0.75) return ['E · very irregular', 'bad']; return ['F · bunched', 'bad'];
   }
-  function gaps() {
-    const bs = [...S.buses].sort((a, b) => a.pos - b.pos); const out = [];
+  function gaps(view) {
+    const P = b => view ? b.rep.pos : b.pos;
+    const bs = S.buses.filter(b => !view || b.tracked).sort((a, b) => P(a) - P(b)); const out = [];
     for (let k = 0; k < bs.length; k++) {
-      const back = bs[k], front = bs[(k + 1) % bs.length]; const dist = bs.length === 1 ? L : fwd(back.pos, front.pos);
-      let between = 0, term = 0; for (let j = 0; j < NS; j++) { const dj = fwd(back.pos, SPOS[j]); if (dj > 0.5 && dj < dist) { between++; if (STOPS[j].terminal) term++; } }
-      out.push({ back, front, dist, time: dist / (VFREE * 0.75) + between * 20 + term * LAYOVER });
+      const back = bs[k], front = bs[(k + 1) % bs.length]; const dist = bs.length === 1 ? L : fwd(P(back), P(front));
+      let between = 0, term = 0; for (let j = 0; j < NS; j++) { const dj = fwd(P(back), SPOS[j]); if (dj > 0.5 && dj < dist) { between++; if (STOPS[j].terminal) term++; } }
+      out.push({ back, front, dist, time: dist / (VFREE * 0.75) + between * 20 + term * LAYOVER, backPos: P(back) });
     }
     return out;
   }
   function checkReserve() {
     if (!S.ritm || S.card || S.t < S.cardCool || S.pending.length || !S.hubs.some(h => h.n > 0)) return;
-    const g = gaps(); if (!g.length) return;
+    const g = gaps(true); if (!g.length) return;
     const big = g.reduce((a, b) => b.time > a.time ? b : a);
     if (big.time < 1.8 * HPLAN) return;
-    const stop = nextStopFrom((big.back.pos + big.dist * 0.5) % L);
-    let helped = 0; for (let j = 0; j < NS; j++) if (fwd(SPOS[stop], SPOS[j]) < fwd(SPOS[stop], big.front.pos)) helped += S.waiting[j];
-    const drive = h => fwd(SPOS[h.stop], SPOS[stop]);
-    const hub = S.hubs.filter(h => h.n > 0).reduce((a, b) => drive(b) < drive(a) ? b : a);
-    const eta = Math.max(3, Math.round(2 + drive(hub) / (VFREE * 0.75) / 60));
+    const stop = nextStopFrom((big.backPos + big.dist * 0.5) % L);
+    let helped = 0; for (let j = 0; j < NS; j++) if (fwd(SPOS[stop], SPOS[j]) < fwd(SPOS[stop], big.front.rep.pos)) helped += S.waiting[j];
+    const tBack = estTime(big.back, stop); // when the bus behind would reach the insertion point anyway
+    const road = h => Math.min(fwd(SPOS[h.stop], SPOS[stop]), L - fwd(SPOS[h.stop], SPOS[stop])); // shorter way round, empty
     S.resCount++;
     const mini = S.resCount % 2 === 1;
-    S.card = { stop, hub, eta, gap: big.time, helped, id: 'R-' + String(S.resCount).padStart(2, '0'), cap: mini ? 45 : 90, kind: mini ? 'minibus' : 'bus' };
-    addLog(`Ritm suggests reserve ${S.card.id} for a ${fmt(big.time)} gap`);
+    const options = S.hubs.filter(h => h.n > 0).map(h => {
+      const eta = Math.max(3, Math.round(2 + road(h) / VFREE / 60)); // free-flow speed, no stops
+      return { hub: h, eta, deadKm: (road(h) / 1000).toFixed(1), gain: Math.max(0, Math.round(helped * (tBack - eta * 60) / 60)) };
+    }).filter(o => o.gain > 0).sort((a, b) => b.gain - a.gain).slice(0, 3);
+    S.card = { stop, gap: big.time, helped, options, id: 'R-' + String(S.resCount).padStart(2, '0'), cap: mini ? 45 : 90, kind: mini ? 'minibus' : 'bus' };
+    addLog(options.length ? `Ritm: ${fmt(big.time)} gap forming, ${options.length} add-a-bus option${options.length > 1 ? 's' : ''}` : `Ritm: ${fmt(big.time)} gap forming; no reserve can reach it in time`);
   }
-  function approve() { const c = S.card; if (!c) return; c.hub.n--; S.pending.push({ id: c.id, stop: c.stop, at: S.t + c.eta * 60, cap: c.cap }); addLog(`Dispatcher sends ${c.id} from ${c.hub.name}, ETA ${c.eta} min`); S.card = null; S.cardCool = S.t + 300; render(true); }
-  function decline() { if (!S.card) return; addLog(`Dispatcher declines ${S.card.id}`); S.resCount--; S.card = null; S.cardCool = S.t + 600; render(true); }
+  function approve(k) { const c = S.card; if (!c) return; const o = c.options[k]; o.hub.n--; S.pending.push({ id: c.id, stop: c.stop, at: S.t + o.eta * 60, cap: c.cap }); addLog(`Dispatcher sends ${c.id} from ${o.hub.name}, ETA ${o.eta} min`); S.card = null; S.cardCool = S.t + 300; render(true); }
+  function decline() { if (!S.card) return; addLog(`Dispatcher keeps ${S.card.id} in reserve`); S.resCount--; S.card = null; S.cardCool = S.t + 600; render(true); }
 
   // ---------- map ----------
   const NSV = 'http://www.w3.org/2000/svg';
@@ -529,7 +605,7 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
       const twins = S.buses.filter(o => o !== b && Math.abs(o.pos - b.pos) < 40);
       const off = twins.length ? (S.buses.indexOf(b) % 2 ? 9 : -9) * u : 0;
       g.setAttribute('transform', `translate(${(x + off).toFixed(1)} ${(y - off * 0.5).toFixed(1)})`);
-      g._c.setAttribute('class', 'bus-c ' + b.state + (b.reserve ? ' res' : ''));
+      g._c.setAttribute('class', 'bus-c ' + b.state + (b.reserve ? ' res' : '') + (b.tracked ? '' : ' untracked'));
       if (force) {
         g._c.setAttribute('r', 10 * u); g._c.setAttribute('stroke-width', (b.reserve ? 3.5 : 2.5) * u);
         g._sel.setAttribute('r', 15 * u); g._sel.setAttribute('stroke-width', 2 * u); g._sel.setAttribute('stroke-dasharray', `${3 * u} ${3 * u}`);
@@ -543,7 +619,7 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
     S.cong.forEach((c, i) => segEls[i].setAttribute('stroke', c >= 0.75 ? 'var(--free)' : c >= 0.45 ? 'var(--slow)' : 'var(--jam)'));
     STOPS.forEach((s, i) => { const w = S.waiting[i]; const t = waitEls[i]; t.textContent = w >= 6 ? w : ''; t.setAttribute('class', 'wait ' + (w >= 35 ? 'bad' : w >= 18 ? 'warn' : 'ok')); });
     document.getElementById('clock').textContent = clockStr();
-    const mt = document.getElementById('modeTag'); mt.textContent = S.ritm ? 'RITM ON' : 'RITM OFF'; mt.style.color = S.ritm ? 'var(--hold)' : 'var(--muted)';
+    const mt = document.getElementById('modeTag'); mt.textContent = S.ritm ? 'RITM ON · ' + PRESETS[preset].label.toUpperCase() : (S.term ? 'TERMINAL DISPATCH' : 'NO CONTROL'); mt.style.color = S.ritm ? 'var(--hold)' : 'var(--muted)';
     drawBuses(false);
   }
 
@@ -551,10 +627,18 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
   const $ = id => document.getElementById(id);
   function renderKpis() {
     const k = kpis();
+    renderOps();
     if (!k) { ['kCv', 'kWait', 'kBun', 'kGap'].forEach(i => $(i).textContent = '—'); $('kCvG').textContent = 'collecting data'; $('kWaitX').textContent = '—'; return; }
     $('kCv').textContent = k.cv.toFixed(2); const [g, cls] = grade(k.cv); $('kCvG').innerHTML = `<span class="pill ${cls}">${g}</span>`;
     $('kWait').textContent = fmt(k.awt); $('kWaitX').textContent = (k.ewt >= 0 ? '+' : '−') + fmt(Math.abs(k.ewt)) + ' vs timetable';
     $('kBun').textContent = Math.round(k.bun * 100) + '%'; $('kGap').textContent = Math.round(k.gap * 100) + '%';
+  }
+  function renderOps() {
+    const st = S.stats;
+    $('kComp').textContent = st.issued ? Math.round(st.followed / st.issued * 100) + '%' : '—';
+    $('kCompS').textContent = st.issued ? `${st.followed} of ${st.issued} holds advised` : (S.ritm ? 'no hold advised yet' : 'Ritm is off');
+    const reg = S.buses.filter(b => !b.reserve); const trk = reg.filter(b => b.tracked).length;
+    $('kTrk').textContent = `${trk}/${reg.length}`;
   }
   function renderChart() {
     const W = 320, top = 4, bot = 80, ymax = 1.2, y = v => bot - (Math.min(v, ymax) / ymax) * (bot - top), pts = S.cvHist;
@@ -583,23 +667,27 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
       const term = STOPS[b.atStop].terminal;
       $('tState').textContent = term ? 'Terminal layover' : 'Boarding in progress'; big.textContent = term ? fmt(b.timer) : '…';
       $('tNote').textContent = term ? 'Driver break at the terminal.' : (b.slow ? 'A passenger needs extra time. Take as long as needed.' : 'Let everyone board and get off. No countdown yet.');
-    } else { $('tStop').textContent = 'At: ' + short(STOPS[b.atStop].name); $('tState').textContent = 'Boarding complete · earliest departure in'; big.textContent = Math.max(0, Math.round(b.timer)) + ' s'; $('tNote').textContent = 'The bus behind is further away than the bus ahead. Keep doors open for late arrivals.'; }
-    if (!S.ritm && b.state === 'dwell' && !STOPS[b.atStop].terminal) $('tNote').textContent = 'Ritm is off: the bus leaves as soon as boarding ends.';
+    } else { $('tStop').textContent = 'At: ' + short(STOPS[b.atStop].name); $('tState').textContent = b.advice === 'sched' ? 'Held by the terminal dispatcher · departs in' : 'Boarding complete · earliest departure in'; big.textContent = Math.max(0, Math.round(b.timer)) + ' s'; $('tNote').textContent = b.advice === 'sched' ? 'Today’s practice: release on the planned interval at the terminal only.' : b.advice === 'fallback' ? 'The bus behind is not reporting GPS. Fallback: restoring the planned gap ahead only, max 60 s.' : 'The bus behind is further away than the bus ahead. Keep doors open for late arrivals.'; }
+    if (!S.ritm && b.state === 'dwell' && !STOPS[b.atStop].terminal) $('tNote').textContent = S.term ? 'No en-route advice today: the bus leaves as soon as boarding ends.' : 'No control: the bus leaves as soon as boarding ends.';
     if (S.ritm && b.state === 'move' && b.lastStop >= 0) { big.classList.add('go'); big.textContent = 'On rhythm'; }
+    if (S.ritm && !b.tracked) { big.classList.remove('go'); big.textContent = '—'; $('tNote').textContent = 'This bus is not reporting GPS. Ritm gives it no advice and treats it as missing.'; }
+    else if (S.ritm && b.state === 'move' && S.t - b.ignored < 120) { big.textContent = 'Advice not followed'; $('tNote').textContent = 'The driver left before the advised time (driver-compliance scenario).'; }
     $('tAhead').textContent = 'Gap ahead ' + fmt(b.gapAhead); $('tBehind').textContent = 'Gap behind ' + fmt(b.gapBehind);
   }
   function renderReserve() {
     const box = $('resBox');
-    if (!S.ritm) box.innerHTML = '<div class="empty">Turn Ritm on to get reserve-bus suggestions.</div>';
+    if (!S.ritm) box.innerHTML = '<div class="empty">Turn Ritm on to get add-a-bus options.</div>';
     else if (S.card) {
       const c = S.card;
-      box.innerHTML = `<div class="card"><div class="c-title">Send reserve ${c.id} (${c.kind}) from ${c.hub.name} to ${short(STOPS[c.stop].name)}</div>
-        <div class="c-meta">Gap of ${fmt(c.gap)} ahead · about ${c.helped} people waiting in it · ETA ${c.eta} min</div>
-        <div class="c-actions"><button class="btn primary" id="bApprove" type="button">Approve and send</button><button class="btn" id="bDecline" type="button">Not now</button></div></div>`;
-      $('bApprove').onclick = approve; $('bDecline').onclick = decline;
+      box.innerHTML = `<div class="card"><div class="c-title">A ${fmt(c.gap)} gap is forming before ${short(STOPS[c.stop].name)} · about ${c.helped} people waiting in it</div>
+        ${c.options.length ? '' : '<div class="c-meta">No reserve bus can reach the gap before the bus behind does. Recommendation: keep the reserves and let the holding rule re-space the line.</div>'}
+        ${c.options.map((o, k) => `<div class="c-meta">Option ${k + 1}: ${c.kind} ${c.id} from ${o.hub.name} · ${o.deadKm} km empty drive · ETA ${o.eta} min · ≈${o.gain} passenger-minutes saved <button class="btn primary" data-k="${k}" type="button" style="margin-left:8px;padding:4px 10px">Send</button></div>`).join('')}
+        <div class="c-actions"><button class="btn" id="bDecline" type="button">${c.options.length ? 'Keep in reserve' : 'Noted'}</button></div></div>`;
+      box.querySelectorAll('button[data-k]').forEach(btn => btn.onclick = () => approve(Number(btn.dataset.k)));
+      $('bDecline').onclick = decline;
     } else if (S.pending.length) box.innerHTML = S.pending.map(p => `<div class="empty">${p.id} driving to ${short(STOPS[p.stop].name)}, arrives in ${fmt(p.at - S.t)}</div>`).join('');
-    else box.innerHTML = '<div class="empty">No big gap predicted. Ritm checks every 20 seconds.</div>';
-    $('hubs').innerHTML = S.hubs.map(h => `<div class="hub">${h.name}<b>${h.n}</b>on standby (assumed)</div>`).join('');
+    else box.innerHTML = '<div class="empty">No big gap forming. Ritm re-checks every 20 seconds.</div>';
+    $('hubs').innerHTML = S.hubs.map(h => `<div class="hub">${h.name}<b>${h.n}</b>carrier reserve (assumed)</div>`).join('');
   }
   function renderGaps() {
     const g = gaps(), total = g.reduce((a, b) => a + b.time, 0) || 1;
@@ -610,17 +698,18 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
   function renderForecast() {
     const rows = STOPS.map((s, i) => {
       let tn = Infinity;
-      for (const b of S.buses) { if (b.atStop === i) { tn = 0; break; } tn = Math.min(tn, estTime(b, i)); }
+      for (const b of S.buses) { if (!b.tracked) continue; if (b.rep.state !== 'move' && b.atStop === i) { tn = 0; break; } tn = Math.min(tn, estTime(b, i)); }
       for (const p of S.pending) if (p.stop === i) tn = Math.min(tn, p.at - S.t);
-      return { i, s, pred: Math.round(S.waiting[i] + rate(i) * Math.min(tn, 2400)) };
+      const pred = Math.round(S.waiting[i] + rate(i) * Math.min(tn, 2400));
+      return { i, s, pred, lvl: pred >= 35 ? 'High' : pred >= 18 ? 'Medium' : 'Low' };
     }).sort((a, b) => b.pred - a.pred).slice(0, 6);
     const max = Math.max(50, ...rows.map(r => r.pred));
-    $('fc').innerHTML = rows.map(r => `<div class="fc-row"><span class="nm" title="${r.s.name}">${short(r.s.name)} <span style="color:var(--muted);font-size:11px">${r.s.dir === 0 ? '→ 9-cu mkr' : '→ Azadlıq'}</span></span><span class="chip">${PLACE[r.s.place]}</span><span class="num">${r.pred}</span>
-      <div class="bar"><i style="width:${(r.pred / max * 100).toFixed(1)}%;background:${r.pred >= 35 ? 'var(--bad)' : r.pred >= 18 ? 'var(--slow)' : 'var(--hold)'}"></i></div></div>`).join('');
+    $('fc').innerHTML = rows.map(r => `<div class="fc-row"><span class="nm" title="${r.s.name}">${short(r.s.name)} <span style="color:var(--muted);font-size:11px">${r.s.dir === 0 ? '→ 9-cu mkr' : '→ Azadlıq'} · ${PLACE[r.s.place]}</span></span><span class="chip" style="color:${r.lvl === 'High' ? 'var(--bad)' : r.lvl === 'Medium' ? 'var(--slow)' : 'var(--hold)'}">${r.lvl}</span><span class="num" title="estimated people waiting">≈${r.pred}</span>
+      <div class="bar"><i style="width:${(r.pred / max * 100).toFixed(1)}%;background:${r.lvl === 'High' ? 'var(--bad)' : r.lvl === 'Medium' ? 'var(--slow)' : 'var(--hold)'}"></i></div></div>`).join('');
   }
   function renderLog() { $('log').innerHTML = S.log.map(l => `<li><time>${l.t}</time><span>${l.msg}</span></li>`).join(''); }
   function renderButtons() {
-    $('modeOff').setAttribute('aria-pressed', String(!S.ritm)); $('modeOn').setAttribute('aria-pressed', String(S.ritm));
+    $('modeOff').setAttribute('aria-pressed', String(!S.ritm && !S.term)); $('modeTerm').setAttribute('aria-pressed', String(S.term && !S.ritm)); $('modeOn').setAttribute('aria-pressed', String(S.ritm));
     $('btnJam').setAttribute('aria-pressed', String(S.jam)); $('btnJam').textContent = S.jam ? 'Clear the jam' : 'Jam on Ceyhun Səlimov küç.';
     $('btnRemove').disabled = S.buses.filter(b => !b.reserve).length <= 4;
     $('btnRush').disabled = S.t < S.rushUntil; $('btnRush').textContent = S.t < S.rushUntil ? 'University rush on' : 'Medical University rush';
@@ -635,16 +724,18 @@ const DATA = {"route":{"short":"61","long":"Azadlıq pr. - 9-cu mkr","modelHeadw
   }
 
   // ---------- controls ----------
-  $('modeOff').onclick = () => { if (!S.ritm) return; S.ritm = false; S.card = null; addLog('Ritm switched off'); render(true); };
-  $('modeOn').onclick = () => { if (S.ritm) return; S.ritm = true; S.cardCool = S.t + 120; addLog('Ritm switched on'); render(true); };
+  $('modeOff').onclick = () => { if (!S.ritm && !S.term) return; S.ritm = false; S.term = false; S.card = null; addLog('No control'); render(true); };
+  $('modeTerm').onclick = () => { if (S.term && !S.ritm) return; S.ritm = false; S.term = true; S.card = null; addLog('Today’s practice: terminal dispatch only'); render(true); };
+  $('modeOn').onclick = () => { if (S.ritm) return; S.ritm = true; S.term = true; S.cardCool = S.t + 120; addLog('Ritm switched on'); render(true); };
   $('btnRemove').onclick = () => { const reg = S.buses.filter(b => !b.reserve); if (reg.length <= 4) return; const b = reg[Math.floor(rng() * reg.length)]; S.buses = S.buses.filter(x => x !== b); addLog(`Bus ${b.id} taken out of service (breakdown)`); rebuildBusSelect(); render(true); };
   $('btnJam').onclick = () => { S.jam = !S.jam; addLog(S.jam ? 'Traffic jam on Ceyhun Səlimov küç. (8 Noyabr – 20 Yanvar)' : 'Traffic jam clears'); render(true); };
   $('btnRush').onclick = () => { S.rushUntil = S.t + 900; addLog('Rush at Tibb Universiteti and Dövlət İmtahan Mərkəzi (15 min)'); render(true); };
   $('busSel').onchange = e => { S.sel = e.target.value; renderTablet(); drawBuses(true); };
+  $('real').onchange = e => { preset = e.target.value; applyPreset(); S.stats = { issued: 0, followed: 0, ignored: 0 }; addLog('Scenario: ' + PRESETS[preset].label); render(true); };
   let paused = false;
   $('btnPause').onclick = () => { paused = !paused; $('btnPause').textContent = paused ? 'Play' : 'Pause'; };
   function warmup() { for (let k = 0; k < 3600; k++) step(); }
-  $('btnReset').onclick = () => { const keep = S.ritm; init(); warmup(); S.ritm = keep; if (keep) S.cardCool = S.t + 120; busLayer.innerHTML = ''; busEls = new Map(); rebuildBusSelect(); render(true); };
+  $('btnReset').onclick = () => { const keep = S.ritm, keepT = S.term; init(); warmup(); S.ritm = keep; S.term = keepT; if (keep) S.cardCool = S.t + 120; S.stats = { issued: 0, followed: 0, ignored: 0 }; busLayer.innerHTML = ''; busEls = new Map(); rebuildBusSelect(); render(true); };
 
   init(); warmup(); buildMap(); rebuildBusSelect(); render(true);
   $('mapSub').textContent = `${NS} stops · ${(L / 1000).toFixed(1)} km round trip · ${NPLAN} buses · planned interval ${fmt(HPLAN)} (assumed)`;

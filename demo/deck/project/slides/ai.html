@@ -1,0 +1,21 @@
+<section id="ai" data-transition="fade" style="background:#12202E;color:#F6F4EE;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<p style="font-size:24px;font-weight:700;color:#F2A33A;letter-spacing:3px;text-transform:uppercase">Where the AI is</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;width:1600px">A transparent rule in the cab, learning models behind it</h2>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#1C2E40;border-radius:16px;padding:40px;border-top:8px solid #F2A33A">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700">Controller: linear headway rule</h3>
+<p style="font-size:28px;color:#C9D3DC;line-height:1.35">hold = ½ × (gap behind − gap ahead). Field-tested in Atlanta and Chicago. 30-second steps, 60–120 s cap, shown only while stationary.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#1C2E40;border-radius:16px;padding:40px;border-top:8px solid #F2A33A">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700">Forecasts: LightGBM</h3>
+<p style="font-size:28px;color:#C9D3DC;line-height:1.35">Predicts when the bus behind will arrive from link times, hour and weekday. We show its error next to the timetable-based estimate.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#1C2E40;border-radius:16px;padding:40px;border-top:8px solid #F2A33A">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700">Assignment: OR-Tools</h3>
+<p style="font-size:28px;color:#C9D3DC;line-height:1.35">Ranks add-a-bus options by empty drive time against passenger-minutes saved. The dispatcher decides.</p>
+</div>
+</div>
+<p style="font-size:30px;color:#F6F4EE;width:1600px">Reinforcement learning stays in the appendix: it beats a tuned rule by seconds in simulation, and the one real pilot ran it inside rule-based guardrails.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1600px;font-size:24px;color:#8796A5">12 · Bartholdi &amp; Eisenstein 2012; Xuan, Argote &amp; Daganzo 2011; CTA 2022–23 pilot (Rodriguez et al. 2025)</p>
+<aside>Judges will ask where the AI is, so here is the honest answer. The instruction the driver sees comes from a transparent linear rule, because that is what has worked in the field. The learning models sit behind it: a LightGBM model forecasts when the bus behind will arrive, and we show its error against the timetable estimate. OR-Tools ranks the add-a-bus options. Reinforcement learning is in our appendix as an offline experiment; it beats a tuned rule by seconds in simulation, and Chicago’s one real pilot ran it inside rule-based guardrails.</aside>
+</section>

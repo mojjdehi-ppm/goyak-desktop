@@ -4,11 +4,11 @@
   "lists": "css",
   "title": "Ritm — AI that keeps Baku’s buses in rhythm",
   "cover": "cover",
-  "order": ["cover", "problem", "why", "who", "solution", "guardian", "forecast", "reserve", "evidence", "whynow", "pilot", "close"],
+  "order": ["cover", "problem", "why", "who", "exists", "solution", "guardian", "forecast", "reserve", "evidence", "results", "ai", "data", "whynow", "pilot", "close"],
   "sections": {
     "s1": {"description": "The problem: Baku’s buses arrive in bunches and people wait.", "start": "cover"},
-    "s2": {"description": "The solution: Ritm’s three modules on AYNA’s existing GPS.", "start": "solution"},
-    "s3": {"description": "Proof, timing and the pilot we propose.", "start": "evidence"}
+    "s2": {"description": "What Baku already has, and the three Ritm modules.", "start": "exists"},
+    "s3": {"description": "Field proof, honest simulation results, data, timing and the pilot.", "start": "evidence"}
   },
   "faces": {
     "space-grotesk": {"family": "Space Grotesk", "href": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap"},

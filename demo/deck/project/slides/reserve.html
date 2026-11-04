@@ -1,20 +1,20 @@
 <section id="reserve" data-transition="fade" style="background:#F6F4EE;color:#12202E;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:56px">
-<p style="font-size:24px;font-weight:700;color:#9A5A0C;letter-spacing:3px;text-transform:uppercase">Module 3 · Reserve Dispatch</p>
-<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;width:1500px">About 20 standby buses, sent where they help most</h2>
+<p style="font-size:24px;font-weight:700;color:#9A5A0C;letter-spacing:3px;text-transform:uppercase">Module 3 · Add-a-bus Advisor</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;width:1500px">The reserve buses carriers already hold, sent where they help most</h2>
 <div style="display:flex;align-items:center;gap:16px">
 <div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFDF8;border:1px solid #E3DED2;border-radius:16px;padding:40px">
 <p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:44px;font-weight:700;color:#1F7A6F">1</p>
-<p style="font-size:32px;line-height:1.3">The forecast sees a big gap or crowd coming</p>
+<p style="font-size:32px;line-height:1.3">Ritm sees a big gap starting to form</p>
 </div>
 <x-connector style="width:72px;color:#1F7A6F;border-width:4px" head="end"></x-connector>
 <div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFDF8;border:1px solid #E3DED2;border-radius:16px;padding:40px">
 <p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:44px;font-weight:700;color:#1F7A6F">2</p>
-<p style="font-size:32px;line-height:1.3">The AI picks a vehicle, a hub and an entry point</p>
+<p style="font-size:32px;line-height:1.3">It ranks the options: which reserve, from which terminal, where to join</p>
 </div>
 <x-connector style="width:72px;color:#1F7A6F;border-width:4px" head="end"></x-connector>
 <div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFDF8;border:1px solid #E3DED2;border-radius:16px;padding:40px">
 <p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:44px;font-weight:700;color:#1F7A6F">3</p>
-<p style="font-size:32px;line-height:1.3">The dispatcher approves with one tap</p>
+<p style="font-size:32px;line-height:1.3">The dispatcher picks one, or keeps the bus in reserve</p>
 </div>
 <x-connector style="width:72px;color:#1F7A6F;border-width:4px" head="end"></x-connector>
 <div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFDF8;border:1px solid #E3DED2;border-radius:16px;padding:40px">
@@ -22,7 +22,7 @@
 <p style="font-size:32px;line-height:1.3">The gap closes before people pile up</p>
 </div>
 </div>
-<p style="font-size:32px;color:#2D3748;width:1500px">Optimisation with OR-Tools weighs the drive from the hub against the passenger minutes it saves. A person always decides.</p>
-<p style="position:absolute;left:128px;bottom:64px;width:1400px;font-size:24px;color:#6A7179">08 · Pool size and hubs (3–4) are our assumption, to be agreed with AYNA</p>
-<aside>AYNA can keep a small standby pool, about 20 buses and minibuses at three or four hubs. When the forecast sees a big gap or a crowd coming, the system picks which vehicle to send, from which hub and where it should join the route. It compares the drive from the hub with how many passenger minutes it saves. The dispatcher sees the reason and approves with one tap. The pool size is our assumption and would be agreed with AYNA.</aside>
+<p style="font-size:32px;color:#2D3748;width:1500px">OR-Tools weighs the empty drive from the terminal against the passenger-minutes saved. Validated in simulation only. A person always decides.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1400px;font-size:24px;color:#6A7179">09 · Uses the reserve buses AYNA’s route tenders already require per carrier; no new standby fleet</p>
+<aside>Carriers already keep reserve buses per route; AYNA’s tenders require them. We do not propose a new standby fleet. When Ritm sees a large gap starting to form, the advisor ranks the options: which reserve vehicle, from which terminal, where it should join. It weighs the empty drive against the passenger-minutes it saves. The dispatcher sees the reasons and picks one, or keeps the bus in reserve. This module has been validated in simulation only, and we say so.</aside>
 </section>
